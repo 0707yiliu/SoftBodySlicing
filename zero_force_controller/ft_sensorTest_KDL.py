@@ -6,7 +6,7 @@ import time
 from matplotlib import pyplot as plt
 import numpy as np
 
-from admittance_controller.core import FT_controller as AdmController
+from zero_force_controller.core import ZeroForceController
 from scipy.spatial.transform import Rotation as R
 
 from kdl_func import KDL_ROBOT
@@ -19,15 +19,15 @@ i = 0
 rtde_c = rtde_control.RTDEControlInterface("10.42.0.162")
 rtde_r = rtde_receive.RTDEReceiveInterface("10.42.0.162")
 
-# ------------- admittance controller -------------
+# ------------- zero force controller -------------
 rtde_c.zeroFtSensor()
 # print('zero force:', rtde_r.getActualTCPForce())
-force_controller = AdmController(0.5, 500, 5, 0.01)
-admittance_params = np.zeros((3, 3)) # contains acc, vel and pos in xyz derictions
-admittance_paramsT = np.zeros((3, 3))
+k_xyz = np.array([0, 0, 0.01])
+kr_xyz = np.array([0, 0, 5])
+force_controller = ZeroForceController(k_xyz, kr_xyz, 0.01)
 # -------------------------------------------------
 # ------- KDL ------------
-ur3e_kdl = KDL_ROBOT('ur3e.urdf', "base_link", "tool0")
+ur3e_kdl = KDL_ROBOT('../ur3e.urdf', "base_link", "tool0")
 # ----------------------
 
 joint_angles_curr = rtde_r.getActualQ()
@@ -64,37 +64,33 @@ truncation_num = 4
 des_pos = np.around(des_pos, truncation_num) # truncation for float number
 des_euler = np.around(des_euler, truncation_num)
 adm_control_actived = False
-ft_rot_th = 0.5
-ft_pos_th = 10
+ft_rot_th = 0.4
+ft_pos_th = 3
 while True:
-    # TODO: data cutting for ik
+    # TODO: data cutting for ik with truncation_num (have done a part of it)
     time.sleep(0.01)
     # curr_ft = np.array(rtde_r.getActualTCPForce())
     curr_ft = np.around(rtde_r.getActualTCPForce(), truncation_num)
-    # curr_pos = np.array(rtde_r.getActualTCPPose())[:3]
-    # curr_rot = R.from_rotvec(rtde_r.getActualTCPPose()[3:], degrees=False)
-    # curr_euler = r_target_rot.as_euler('xyz', degrees=False)
-    # print(last_ft, curr_ft)
     last_ft = np.around(lowpass_filter(last_ft, curr_ft, ratio), truncation_num)
-
-    position_d, rotation_d, admittance_params, admittance_paramsT = force_controller.admittance_control(desired_position=des_pos,
-                                              desired_rotation=des_euler,
-                                              FT_data=last_ft,
-                                              params_mat=admittance_params,
-                                              paramsT_mat=admittance_paramsT)
+    position_d, rotation_d = force_controller.zeroforce_control(
+                                                                ft=last_ft,
+                                                                desired_position=des_pos,
+                                                                desired_rotation=des_euler,
+                                                            )
     position_d = np.around(position_d, truncation_num)
     rotation_d = np.around(rotation_d, truncation_num)
     r_target_rot = R.from_euler('xyz', rotation_d, degrees=False)
     r_target_qua = r_target_rot.as_quat()
     ik_q = ur3e_kdl.inverse(rtde_r.getActualQ(), position_d, r_target_qua)
     ik_q = np.around(ik_q, truncation_num)
-    # print(ik_q)
     # --------- zero force control (separate as one func)------------
-    # if np.any(last_ft[3:] > ft_rot_th) or np.any(last_ft[3:] < -ft_rot_th) or np.any(last_ft[:3] > ft_pos_th) or np.any(last_ft[:3] < -ft_pos_th):
-    #     # for recording the desired posture but not set to des_pos and des_euler
-    #     adm_control_actived = True
-    #     temp_des_pos = position_d
-    #     temp_des_euler = rotation_d
+    if np.any(last_ft[3:] > ft_rot_th) or np.any(last_ft[3:] < -ft_rot_th) or np.any(last_ft[:3] > ft_pos_th) or np.any(last_ft[:3] < -ft_pos_th):
+        # for recording the desired posture but not set to des_pos and des_euler
+        adm_control_actived = True
+        temp_des_pos = position_d
+        temp_des_euler = rotation_d
+        des_pos = position_d
+        des_euler = rotation_d
     # if np.all(last_ft[3:] < ft_rot_th) and np.all(last_ft[3:] > -ft_rot_th) and np.all(last_ft[:3] < ft_pos_th) and np.all(last_ft[:3] > -ft_pos_th) and adm_control_actived is True:
     #     # zero force control for setting des_pos and des_euler when no ext-force
     #     # print(des_pos)
@@ -109,13 +105,21 @@ while True:
     # print('r qua:', r_target_qua)
     # print('ee q:', rtde_r.getActualQ())
     # print('ik q:', ik_q)
-    # rtde_c.servoJ(ik_q, 0.001, 0.001, 0.5, 0.03, 500) # moving func !!!!!!!!!!!!!!!!!!!!!!!!
+
+    bool_init_delay = False
+    e_q = ik_q - rtde_r.getActualQ()
+    if np.any(abs(e_q) > 0.5):
+        print(abs(e_q))
+        print('move too much!!!!!!!!!!!!! IK problem')
+    else:
+        rtde_c.servoJ(ik_q, 0.001, 0.001, 0.008, 0.03, 500) # moving func !!!!!!!!!!!!!!!!!!!!!!!!
+    # ---------------------------------------------
     try:
         i += 1
         sample_time.append(i)
         # force_xyz.append(np.hstack((position_d, rotation_d)))
-        force_xyz.append(position_d)
-        # force_xyz.append(last_ft[:3])
+        # force_xyz.append(position_d)
+        force_xyz.append(last_ft[:3])
         plt.clf()  # 清除之前画的图
         plt.plot(sample_time, force_xyz)  # 画出当前x列表和y列表中的值的图形
         plt.pause(0.001)  # 暂停一段时间，不然画的太快会卡住显示不出来
