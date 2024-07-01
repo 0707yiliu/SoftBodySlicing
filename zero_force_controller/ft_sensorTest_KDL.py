@@ -18,14 +18,14 @@ force_xyz = []
 force_rxyz = []
 i = 0
 
-rtde_c = rtde_control.RTDEControlInterface("10.42.0.162")
-rtde_r = rtde_receive.RTDEReceiveInterface("10.42.0.162")
+rtde_c = rtde_control.RTDEControlInterface("10.42.0.163")
+rtde_r = rtde_receive.RTDEReceiveInterface("10.42.0.163")
 
 # ------------- zero force controller -------------
 rtde_c.zeroFtSensor()
 # print('zero force:', rtde_r.getActualTCPForce())
-# k_xyz = np.array([0.015, 0.015, 0.015])
-k_xyz = np.array([0, 0, 0])
+k_xyz = np.array([0.015, 0.015, 0.015])
+# k_xyz = np.array([0, 0, 0])
 kr_xyz = np.array([0.5, 0.5, 3])
 force_controller = ZeroForceController(k_xyz, kr_xyz, 0.01)
 # -------------------------------------------------
@@ -71,10 +71,11 @@ truncation_num = 6
 des_pos = np.around(des_pos, truncation_num) # truncation for float number
 des_euler = np.around(des_euler, truncation_num)
 ft_rot_th = 0.4
-ft_pos_th = 3
+ft_pos_th = 2
 _init_delay = True
 init_delay_item = 30
 control_speed = 1
+rtde_c.zeroFtSensor()
 while True:
     # TODO: data cutting for ik with truncation_num (have done a part of it)
     time.sleep(0.01)
