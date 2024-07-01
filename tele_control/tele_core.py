@@ -26,7 +26,6 @@ m_robot.servoJ(init_q, init_time, 0.05, 500)
 s_robot.servoJ(init_q, init_time, 0.05, 500)
 print('waiting and enter.')
 input()
-
 des_pos, des_euler = m_robot.getTCPPos()
 ft_rot_th = 0.4
 ft_pos_th = 2
