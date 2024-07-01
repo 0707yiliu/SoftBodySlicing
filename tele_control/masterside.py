@@ -3,29 +3,28 @@ import time
 from matplotlib import pyplot as plt
 import numpy as np
 from zero_force_controller.core import ZeroForceController
-from admittance_controller.core import FT_controller as AdmController
 from register_robot import RegisterRobot
 
 m_robot = RegisterRobot("10.42.0.163")
-s_robot = RegisterRobot("10.42.0.162")
-# the configuration of admittance control for slave robot --------------
-s_admcontroller = AdmController(0.5, 500, 5, 0.01)
-# --------------
+
 # the configuration of zeroforce control for master robot ------------
 k_xyz = np.array([0.008, 0.008, 0.008])
 # k_xyz = np.array([0, 0, 0])
 kr_xyz = np.array([0.5, 0.5, 3])
 m_zfcontroller = ZeroForceController(k_xyz, kr_xyz, 0.01)
 # --------------
+
 def lowpass_filter(last, cur, ratio):
     new = ratio * last + (1 - ratio) * cur
     return new
+
 init_time = 4
 init_q = np.array([0.50788814, -1.45690663,  1.38477117, -1.71768059, -1.50159198,  2.11026955])
 m_robot.servoJ(init_q, init_time, 0.05, 500)
-s_robot.servoJ(init_q, init_time, 0.05, 500)
+
 print('waiting and enter.')
 input()
+
 des_pos, des_euler = m_robot.getTCPPos()
 ft_rot_th = 0.4
 ft_pos_th = 2
@@ -82,3 +81,4 @@ while True:
         plt.clf()
         plt.close()
         sys.exit(0)
+
