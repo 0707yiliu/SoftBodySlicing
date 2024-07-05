@@ -10,7 +10,7 @@ class FT_controller():
     def __init__(self, m, k, kr, dt) -> None:
         self.M = m # mass
         self.K = k # spring
-        self.B = 2 * np.sqrt(self.K * self.M) # damper
+        self.B = 2 * np.sqrt(self.K * self.M + 270) # damper
 
         self.TM = m # mass
         self.TK = kr # spring
@@ -78,7 +78,7 @@ class FT_controller():
         Tz_e_d = self.dt * dTz_e_d + Tz_e
 
         rotation_offset = np.array([Tx_e_d, Ty_e_d, Tz_e_d])
-        # rotation_offset = np.array([0, 0, Tz_e_d])
+        # rotation_offset = np.array([0, 0, 0])
         rotation_d = rotation_offset + desired_rotation
 
         self._mat[0, 0] = ddx_e_d

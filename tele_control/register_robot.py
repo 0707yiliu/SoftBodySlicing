@@ -56,6 +56,7 @@ class RegisterRobot():
         e_q = ik_q - self.rtde_r.getActualQ()
         if np.any(abs(e_q) > 0.5):
             print('move too much!!!!!!!!!!!!! IK problem')
+            print(ik_q)
             return self.rtde_r.getActualQ()
         else:
             return ik_q
@@ -65,3 +66,22 @@ class RegisterRobot():
 
     def getQ(self):
         return self.rtde_r.getActualQ()
+
+    def getToolPos(self, rot='euler'):
+        curr_q = self.getQ()
+        tool_pos, tool_qua = self.ur3e_kdl.forward(curr_q)
+        tool_qua_R = R.from_quat(tool_qua)
+        if rot == 'euler':
+            tool_euler = tool_qua_R.as_euler('xyz', degrees=False)
+            return tool_pos, tool_euler
+        elif rot == 'quaternion':
+            return tool_pos, tool_qua
+        elif rot == 'rot':
+            tool_rot = tool_qua_R.as_rotvec()
+            return tool_pos, tool_rot
+        else:
+            print('please give the right rot')
+            return False
+
+
+
