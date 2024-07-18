@@ -12,6 +12,9 @@ def lowpass_filter(last, cur, ratio):
     return new
 
 s_robot = RegisterRobot("10.42.0.162")
+
+current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
+
 # the configuration of admittance control for slave robot --------------
 s_admcontroller = AdmController(0.5, 1000, 8, 0.01)
 admittance_params = np.zeros((3, 3)) # contains acc, vel and pos in xyz derictions
@@ -48,6 +51,11 @@ sample_time = []
 force_xyz = []
 force_rxyz = []
 i = 0
+
+# for record
+pos_record = np.zeros(6)
+force_record = np.zeros(6)
+
 while True:
     time.sleep(0.01)
     # environment force ------------
@@ -68,12 +76,14 @@ while True:
         print('slave request timed out. check the server in master side')
     # ------------------------------
     # print(last_ft)
-    position_d, rotation_d, admittance_params, admittance_paramsT = s_admcontroller.admittance_control(
-        desired_position=des_pos,
-        desired_rotation=des_euler,
-        FT_data=last_ft,
-        params_mat=admittance_params,
-        paramsT_mat=admittance_paramsT)
+    # position_d, rotation_d, admittance_params, admittance_paramsT = s_admcontroller.admittance_control(
+    #     desired_position=des_pos,
+    #     desired_rotation=des_euler,
+    #     FT_data=last_ft,
+    #     params_mat=admittance_params,
+    #     paramsT_mat=admittance_paramsT)
+    position_d = des_pos
+    rotation_d = des_euler
     ik_q = s_robot.IK(position_d, rotation_d)
     # print(ik_q, s_robot.getQ())
     s_robot.servoJ(ik_q, 0.08, 0.03, 500)
@@ -83,7 +93,13 @@ while True:
         msg_to_master = np.hstack((last_ft, p_rp, p_rr))
         message = pickle.dumps(msg_to_master)
         slavercv.sendto(message, serveraddr)
+
     # --------------------------------------
+    p_h = np.hstack([p_rp, p_rr])
+    pos_record = np.vstack([pos_record, p_h])
+    force_record = np.vstack([force_record, last_ft])
+    np.save(current_time + 'slavepos', pos_record)
+    np.save(current_time + 'slaveforce', force_record)
     try:
         i += 1
         sample_time.append(i)

@@ -1,5 +1,6 @@
 import pickle
 import sys
+sys.path.append('/home/yi/robotic_manipulation/SoftBodySlicing')
 import time
 from matplotlib import pyplot as plt
 import numpy as np
@@ -8,6 +9,8 @@ from register_robot import RegisterRobot
 import socket
 
 m_robot = RegisterRobot("10.42.0.163")
+
+current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 
 # the configuration of zeroforce control for master robot ------------
 k_xyz = np.array([0.008, 0.008, 0.008])
@@ -43,6 +46,10 @@ force_xyz = []
 force_rxyz = []
 i = 0
 
+# for record
+pos_record = np.zeros(6)
+force_record = np.zeros(6)
+
 env_ft = np.zeros(6) # it would be changed by slave side, to env_ft
 # ----------------------------
 # ------------ socket (send) init ---------------
@@ -60,7 +67,7 @@ while True:
         recv_data, server = sendtoslave.recvfrom(1024)
         recv_data = pickle.loads(recv_data)
         if recv_data.shape[0] == 12:
-            env_ft = recv_data[:6] / 10
+            env_ft = recv_data[:6] / 2
             robot_pos = recv_data[6:9]
             robot_euler = recv_data[9:]
     except socket.timeout:
@@ -94,6 +101,11 @@ while True:
     message = pickle.dumps(msg_to_slave)
     sendtoslave.sendto(message, addr)
     # ---------------------------------
+    p_h = np.hstack([p_hp, p_hr])
+    pos_record = np.vstack([pos_record, p_h])
+    force_record = np.vstack([force_record, f_h])
+    np.save(current_time + 'masterpos', pos_record)
+    np.save(current_time + 'masterforce', force_record)
     try:
         i += 1
         sample_time.append(i)
