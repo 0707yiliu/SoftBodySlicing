@@ -1,6 +1,5 @@
 import pickle
 import sys
-sys.path.append('/home/yi/robotic_manipulation/SoftBodySlicing')
 import time
 from matplotlib import pyplot as plt
 import numpy as np

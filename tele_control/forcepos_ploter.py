@@ -16,19 +16,23 @@ print(slavepos.shape)
 # plt.plot(masterforce[:,0])
 # plt.show()
 
-Y = masterforce
-T = np.linspace(0, 10, masterforce.shape[0])
+data = slavepos[10:, :]
+Y = data
+T = np.linspace(0, 10, data.shape[0])
 
-dmp = DMP(n_dims=masterforce.shape[1], execution_time=16.9, dt=0.01, n_weights_per_dim=50,
-          smooth_scaling=False)
+dmp = DMP(n_dims=data.shape[1],
+          execution_time=data.shape[0]/100,
+          dt=0.01,
+          n_weights_per_dim=50,
+          smooth_scaling=True)
 dmp.imitate(T, Y)
-new_start = np.array([0.2, 0.5, 0, 1, 0, 0])
-new_goal = np.array([-0.2, 0.5, 0, 1, 0, 0])
+new_start = np.array([-0.2, 0.5, 0, 1, 0, 0])
+new_goal = np.array([0.2, 0.5, 0, 1, 0, 0])
 dmp.configure(start_y=new_start, goal_y=new_goal)
 _, Y_dmp = dmp.open_loop()
 print(Y_dmp.shape)
-plt.plot(Y[:, 0], label=r"Demonstration, $g \approx y_0$", ls="--")
-plt.plot(Y_dmp[:, 0], label="DMP with new goal", lw=5, alpha=0.5)
+plt.plot(Y[:, 3], label=r"Demonstration, $g \approx y_0$", ls="--")
+plt.plot(Y_dmp[:, 3], label="DMP with new goal", lw=5, alpha=0.5)
 plt.show()
 
 

@@ -14,3 +14,4 @@ X_sampled = gmm.sample(100)
 x1 = np.random.randn(20, 1)
 x1_index = [0]
 x2_predicted_mean = gmm.predict(x1_index, x1)
+print(x1, x2_predicted_mean)
