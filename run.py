@@ -123,12 +123,14 @@ for i in range(dmp_traj_force.shape[0]):
     # myrobot.servoJ(ik_q, 0.08, 0.03, 500) # !!!!!! dangerous moving function
     pos_record = np.vstack([pos_record, position_d])
     force_record = np.vstack([force_record, desired_force])
+plt.figure(1)
 plt.plot(traj_force[:, 2], label=r"Demonstration, $g \approx y_0$", ls="--")
 plt.plot(dmp_traj_force[:, 2], label="DMP with new goal", lw=5, alpha=0.5)
 plt.plot(force_record[:, 2])
-# plt.plot(traj_pos[:, 2], label=r"Demonstration, $g \approx y_0$", ls="--")
-# plt.plot(dmp_traj_pos[:, 2], label="DMP with new goal", lw=5, alpha=0.5)
-# plt.plot(pos_record[:, 2])
+plt.figure(2)
+plt.plot(traj_pos[:, 2], label=r"Demonstration, $g \approx y_0$", ls="--")
+plt.plot(dmp_traj_pos[:, 2], label="DMP with new goal", lw=5, alpha=0.5)
+plt.plot(pos_record[:, 2])
 # print(traj_pos[:, 2].shape, dmp_traj_pos[:, 2].shape, pos_record[:, 2].shape)
 plt.show()
 
