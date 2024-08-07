@@ -36,6 +36,8 @@ def traj_load(slaveforce, slavepos):
     # loading tele-trajectory from slave datasets for DMPs
     traj_force = np.load('tele_control/data/' + slaveforce + '.npy')
     traj_pos = np.load('tele_control/data/' + slavepos + '.npy')
+    traj_pos = np.delete(traj_pos, 0, 0)
+    traj_force = np.delete(traj_force, 0, 0)
     return traj_force, traj_pos
 
 def DMP_traj(origin_traj, new_start, new_goal):
@@ -63,24 +65,33 @@ def DMP_traj(origin_traj, new_start, new_goal):
 
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 # register the robot
-# myrobot = RegisterRobot("10.42.0.162")
+myrobot = RegisterRobot("10.42.0.162")
+# init robot
+init_time = 4
+init_q = np.array([0.50788814, -1.45690663,  1.38477117, -1.71768059, -1.50159198,  2.11026955])
+myrobot.servoJ(init_q, init_time, 0.05, 500)
+print('waiting and enter for cutting automatically.')
+input()
+myrobot.zeroforce()
 # define new_start and new_goal for DMP_traj func
-new_start = np.array([-0.2, 0.5, 0, 1, 0, 0])
-new_goal = np.array([0.2, 0.5, 0, 1, 0, 0]) # TODO:TBD, for the force, the array is 6-dims
+new_start_pos = np.array([-0.2575, -0.311, 0.192,  2.969, 0.152,  -0.038])
+new_goal_pos =  np.array([-0.109,  -0.323, 0.143,  3.010, -0.070, 0.609])
+new_start_force = np.array([-0.052, 0.050, 0.057, -0.000, -0.001, -0.001])
+new_goal_force =  np.array([-0.179, -0.830,  2.177, -0.003,  0.040, -0.017])
 # get demonstrated traj from traj_load func
-slave_force = '20240718173024slaveforce'
-slave_pos = '20240718173024slavepos'
+slave_force = '20240807140616slaveforce'
+slave_pos = '20240807140616slavepos'
 traj_force, traj_pos = traj_load(slave_force, slave_pos)
 # define admittance control for auto-robot
-admcontroller = AdmController(0.5, 1000, 8, 0.01) # TODO: TBD
+admcontroller = AdmController(0.5, 1500, 8, 0.01) # TODO: TBD
 admittance_params = np.zeros((3, 3)) # contains acc, vel and pos in xyz derictions
 admittance_paramsT = np.zeros((3, 3))
 # get DMP traj
-dmp_traj_force = DMP_traj(traj_force, new_start, new_goal)
-dmp_traj_pos = DMP_traj(traj_pos, new_start, new_goal)
+dmp_traj_force = DMP_traj(traj_force, new_start_force, new_goal_force)
+dmp_traj_pos = DMP_traj(traj_pos, new_start_pos, new_goal_pos)
 # get the ratio from pos diff
-# curr_pos, curr_euler = myrobot.getToolPos()
-curr_pos = [0,0,0,0,0,0]
+curr_pos, curr_euler = myrobot.getToolPos()
+# curr_pos = [0, 0, 0, 0, 0, 0]
 
 # drive robot, TODO: the time need to be considered
 pos_record = np.array([0,0,0])
@@ -92,12 +103,15 @@ pos_memory = np.zeros((memory_num, 3))
 pos_r_t_1 = np.zeros(3)
 pos_r_t_2 = np.zeros(3)
 t_sample = 0.01
+truncation_num = 4
 for i in range(dmp_traj_force.shape[0]):
-    # time.sleep(0.01)
+    time.sleep(0.01)
+    curr_ft = np.around(myrobot.getTCPFT(), truncation_num)
+    adm_force = desired_force - curr_ft
     position_d, rotation_d, admittance_params, admittance_paramsT = admcontroller.admittance_control(
             desired_position=dmp_traj_pos[i, :3],# TODO: TBD
             desired_rotation=dmp_traj_pos[i, 3:],# TODO: TBD
-            FT_data=desired_force,
+            FT_data=adm_force,
             params_mat=admittance_params,
             paramsT_mat=admittance_paramsT)
     # ratio for changing ft_data ---------------
@@ -115,14 +129,17 @@ for i in range(dmp_traj_force.shape[0]):
     e_force = 0.001 * pos_r_t_1 / (t_sample ** 2) # TODO: mass = 0.001, TBD
     pos_r_t_2 = np.copy(pos_r_t_1)
     pos_r_t_1 = np.copy(pos_r_t)
-    desired_force[:3] = e_force + dmp_traj_force[i, :3]
+    desired_force[:3] = e_force - dmp_traj_force[i, :3]
     desired_force[3:] = dmp_traj_force[i, 3:]
     # print(e_force, desired_force)
     # -------------------------------------------
-    # ik_q = myrobot.IK(position_d, rotation_d)
-    # myrobot.servoJ(ik_q, 0.08, 0.03, 500) # !!!!!! dangerous moving function
+    # print(position_d, rotation_d)
+    ik_q = myrobot.IK(position_d, rotation_d)
+    myrobot.servoJ(ik_q, 0.08, 0.03, 500) # !!!!!! dangerous moving function
     pos_record = np.vstack([pos_record, position_d])
     force_record = np.vstack([force_record, desired_force])
+    np.save('cut_data/' + current_time + 'pos', pos_record)
+    np.save('cut_data/' + current_time + 'force', force_record)
 plt.figure(1)
 plt.plot(traj_force[:, 2], label=r"Demonstration, $g \approx y_0$", ls="--")
 plt.plot(dmp_traj_force[:, 2], label="DMP with new goal", lw=5, alpha=0.5)

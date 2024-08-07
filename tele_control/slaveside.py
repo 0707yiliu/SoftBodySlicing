@@ -98,8 +98,8 @@ while True:
     p_h = np.hstack([p_rp, p_rr])
     pos_record = np.vstack([pos_record, p_h])
     force_record = np.vstack([force_record, last_ft])
-    np.save(current_time + 'slavepos', pos_record)
-    np.save(current_time + 'slaveforce', force_record)
+    np.save('data/' + current_time + 'slavepos', pos_record)
+    np.save('data/' + current_time + 'slaveforce', force_record)
     try:
         i += 1
         sample_time.append(i)
