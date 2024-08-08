@@ -1,0 +1,27 @@
+time_sample: 0.015
+# the sampling time to control the robot
+slave_file_date: '20240808135415'
+# for DMPs follow
+track_file_date: '20240808153310'
+# real robot track the DMPs trajectory
+controlled_robot_ip: '10.42.0.162'
+# slave robot/ controlled robot ip
+forgetting_err:
+    memory_strength: 0.015
+    # the smaller, the stronger nonlinear
+    memory_number: 100
+    # the number of the memory
+    to_force_coefficient: 0.08
+    # the smaller, the smaller force, but can not be too large because it divide t^2
+admittance_controller:
+    mass: 1
+    k_pos: 1500
+    # spring for position, use critical damping
+    k_rot: 8
+    # same as k_pos, both of them can be changed, the bigger, the smaller moving
+    dt: 0.01
+    # same as the frequency of controlling
+DMPs:
+    dt: 0.01
+    n_weights_per_dim: 50
+    smooth_scaling: True
