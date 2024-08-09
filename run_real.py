@@ -77,10 +77,10 @@ print('waiting and enter for cutting automatically.')
 input()
 myrobot.zeroforce()
 # define new_start and new_goal for DMP_traj func
-new_start_pos = np.array([-0.2575, -0.311, 0.192,  2.969, 0.152,  -0.038])
-new_goal_pos =  np.array([-0.088,  -0.321, 0.061,  3.029, -0.152, 0.562])
-new_start_force = np.array([-0.052, 0.050, 0.057, -0.000, -0.001, -0.001])
-new_goal_force =  np.array([-0.232, -0.790, -0.335, -0.020,  0.040, -0.017])
+new_start_pos = np.array(config['DMPs']['new_start_pos'])
+new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
+new_start_force = np.array(config['DMPs']['new_start_force'])
+new_goal_force = np.array(config['DMPs']['new_goal_force'])
 # get demonstrated traj from traj_load func
 slave_force = config['slave_file_date'] + 'slaveforce'
 slave_pos = config['slave_file_date'] + 'slavepos'
@@ -100,15 +100,18 @@ curr_pos, curr_euler = myrobot.getToolPos()
 # curr_pos = [0, 0, 0, 0, 0, 0]
 
 # drive robot, TODO: the time need to be considered
-pos_record = np.array([0,0,0])
+pos_record = np.array([0,0,0,0,0,0])
 desired_force = np.copy(dmp_traj_force[0, :])
 force_record = np.array([0, 0, 0, 0, 0, 0])
 curr_force_record = np.array([0, 0, 0, 0, 0, 0])
-arm_pos_record = np.array([0,0,0])
+arm_pos_record = np.array([0,0,0, 0,0,0])
 memory_num = config['forgetting_err']['memory_number']
 memory_strength = config['forgetting_err']['memory_strength'] # the smaller, the stronger nonlinear
+memory_strength_rot = config['forgetting_err']['memory_strength_rot']
 e_force_mass_coefficient = config['forgetting_err']['to_force_coefficient']
+e_torque_mass_coefficient = config['forgetting_err']['to_torque_coefficient']
 pos_memory = np.zeros((memory_num, 3))
+rot_memory = np.zeros((memory_num, 3))
 pos_r_t_1 = np.zeros(3)
 pos_r_t_2 = np.zeros(3)
 t_sample = config['time_sample']
@@ -133,13 +136,17 @@ for i in range(dmp_traj_force.shape[0]):
     pos_memory = np.roll(pos_memory, 1, axis=0)  # roll one line
     pos_memory[0, :] = r_traj_pos(position_d, dmp_traj_pos[i, :3]) # pos err
     pos_r_t = forgetting(history_memory=pos_memory, memory_strength=memory_strength)
+    rot_memory = np.roll(rot_memory, 1, axis=0)
+    rot_memory[0, :] = r_traj_pos(rotation_d, dmp_traj_pos[i, 3:])  # pos err
+    rot_r_t = forgetting(history_memory=rot_memory, memory_strength=memory_strength_rot)
     ## -------- calculate force by (Ft = mv' - mv) -----
     # e_force = (pos_r_t - 2 * pos_r_t_1 + pos_r_t_2) / (t_sample )
-    e_force = e_force_mass_coefficient * pos_r_t_1 / (t_sample ** 2) # TODO: mass = 0.001, TBD
+    e_force = e_force_mass_coefficient * pos_r_t / (t_sample ** 2) # TODO: mass = 0.001, TBD
+    e_torque = e_torque_mass_coefficient * rot_r_t / (t_sample ** 2)
     pos_r_t_2 = np.copy(pos_r_t_1)
     pos_r_t_1 = np.copy(pos_r_t)
     desired_force[:3] = e_force - dmp_traj_force[i, :3]
-    desired_force[3:] = dmp_traj_force[i, 3:]
+    desired_force[3:] = e_torque - dmp_traj_force[i, 3:]
     # print(e_force, desired_force)
     # -------------------------------------------
     # print(position_d, rotation_d)
@@ -151,9 +158,11 @@ for i in range(dmp_traj_force.shape[0]):
     # print(myrobot.getTCPPos())
     # print('---------')
     myrobot.servoJ(ik_q, 0.09, 0.03, 500) # !!!!!! dangerous moving function
-    arm_pos, _ = myrobot.getToolPos()
-    pos_record = np.vstack([pos_record, position_d])
-    arm_pos_record = np.vstack([arm_pos_record, arm_pos])
+    arm_pos, arm_rot = myrobot.getToolPos()
+    arm_d = np.hstack([arm_pos, arm_rot])
+    pos_d = np.hstack([position_d, rotation_d])
+    pos_record = np.vstack([pos_record, pos_d])
+    arm_pos_record = np.vstack([arm_pos_record, arm_d])
     force_record = np.vstack([force_record, desired_force])
     curr_force_record = np.vstack([curr_force_record, curr_ft])
     np.save('cut_data/' + current_time + 'pos', pos_record)

@@ -10,11 +10,11 @@ class FT_controller():
     def __init__(self, m, k, kr, dt) -> None:
         self.M = m # mass
         self.K = k # spring
-        self.B = 2 * np.sqrt(self.K * self.M + 270) # damper
+        self.B = 2 * np.sqrt(self.K * self.M + 900) # damper
 
         self.TM = m # mass
         self.TK = kr # spring
-        self.TB = 2 * np.sqrt(self.TK * self.TM) # damper
+        self.TB = 2 * np.sqrt(self.TK * self.TM + 500) # damper
 
         self.dt = dt
         self._mat = np.zeros((3, 3))

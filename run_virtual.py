@@ -79,10 +79,10 @@ current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 # register the robot
 # myrobot = RegisterRobot("10.42.0.162")
 # define new_start and new_goal for DMP_traj func
-new_start_pos = np.array([-0.2575, -0.311, 0.192,  2.969, 0.152,  -0.038])
-new_goal_pos =  np.array([-0.088,  -0.321, 0.061,  3.029, -0.152, 0.562])
-new_start_force = np.array([-0.052, 0.050, 0.057, -0.000, -0.001, -0.001])
-new_goal_force =  np.array([-0.232, -0.790, -0.335, -0.020,  0.040, -0.017])
+new_start_pos = np.array(config['DMPs']['new_start_pos'])
+new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
+new_start_force = np.array(config['DMPs']['new_start_force'])
+new_goal_force = np.array(config['DMPs']['new_goal_force'])
 # get demonstrated traj from traj_load func
 slave_force = config['slave_file_date'] + 'slaveforce' # for virtual DMP virtual force
 slave_pos = config['slave_file_date'] + 'slavepos'
@@ -112,15 +112,18 @@ dmp_traj_pos = DMP_traj(traj_pos, new_start_pos, new_goal_pos)
 curr_pos = [0, 0, 0, 0, 0, 0]
 
 # drive robot, TODO: the time need to be considered
-pos_record = np.array([0,0,0])
+pos_record = np.array([0,0,0,0,0,0])
 desired_force = np.copy(dmp_traj_force[0, :])
 force_record = np.array([0, 0, 0, 0, 0, 0])
-force_err_record = np.array([0, 0, 0])
-pos_err_record = np.array([0, 0, 0])
+force_err_record = np.array([0, 0, 0, 0, 0, 0])
+pos_err_record = np.array([0, 0, 0, 0, 0, 0])
 memory_num = config['forgetting_err']['memory_number']
 memory_strength = config['forgetting_err']['memory_strength'] # the smaller, the stronger nonlinear
+memory_strength_rot = config['forgetting_err']['memory_strength_rot']
 e_force_mass_coefficient = config['forgetting_err']['to_force_coefficient']
+e_torque_mass_coefficient = config['forgetting_err']['to_torque_coefficient']
 pos_memory = np.zeros((memory_num, 3))
+rot_memory = np.zeros((memory_num, 3))
 pos_r_t_1 = np.zeros(3)
 pos_r_t_2 = np.zeros(3)
 t_sample = config['time_sample']
@@ -142,37 +145,49 @@ for i in range(dmp_traj_force.shape[0]):
     pos_memory = np.roll(pos_memory, 1, axis=0)  # roll one line
     pos_memory[0, :] = r_traj_pos(position_d, dmp_traj_pos[i, :3]) # pos err
     pos_r_t = forgetting(history_memory=pos_memory, memory_strength=memory_strength)
-    print(pos_r_t)
-    pos_err_record = np.vstack([pos_err_record, pos_r_t])
+    # print(pos_r_t)
+    rot_memory = np.roll(rot_memory, 1, axis=0)
+    rot_memory[0, :] = r_traj_pos(rotation_d, dmp_traj_pos[i, 3:])  # pos err
+    rot_r_t = forgetting(history_memory=rot_memory, memory_strength=memory_strength_rot)
+    pos_t = np.hstack([pos_r_t, rot_r_t])
+    pos_err_record = np.vstack([pos_err_record, pos_t])
     ## -------- calculate force by (Ft = mv' - mv) -----
     # e_force = (pos_r_t - 2 * pos_r_t_1 + pos_r_t_2) / (t_sample )
-    e_force = e_force_mass_coefficient * pos_r_t_1 / (t_sample ** 2) # TODO: mass = 0.001, TBD
-    force_err_record = np.vstack([force_err_record, e_force])
+    e_force = e_force_mass_coefficient * pos_r_t / (t_sample ** 2) # TODO: mass = 0.001, TBD
+    e_torque = e_torque_mass_coefficient * rot_r_t / (t_sample ** 2)
+    # print(e_force, e_torque)
+    e_ft = np.hstack([e_force, e_torque])
+    force_err_record = np.vstack([force_err_record, e_ft])
     pos_r_t_2 = np.copy(pos_r_t_1)
     pos_r_t_1 = np.copy(pos_r_t)
     desired_force[:3] = e_force - dmp_traj_force[i, :3]
-    desired_force[3:] = dmp_traj_force[i, 3:]
+    desired_force[3:] = e_torque - dmp_traj_force[i, 3:]
     # print(e_force, desired_force)
     # -------------------------------------------
     # ik_q = myrobot.IK(position_d, rotation_d)
     # myrobot.servoJ(ik_q, 0.08, 0.03, 500) # !!!!!! dangerous moving function
-    pos_record = np.vstack([pos_record, position_d])
+    pos_d = np.hstack([position_d, rotation_d])
+    pos_record = np.vstack([pos_record, pos_d])
     force_record = np.vstack([force_record, desired_force])
 plt.figure(1)
-plt.plot(traj_force[:, 2], label=r"Demonstration", ls="--")
-plt.plot(dmp_traj_force[:, 2], label="DMP with new goal", lw=5, alpha=0.5)
-plt.plot(force_record[:, 2], label="sim")
-plt.plot(track_force[:, 2], label="track in real")
-plt.plot(-track_arm_force[:, 2], label="real arm force feedback")
-plt.plot(force_err_record[:,2], label = 'err')
+for i in range(6):
+    plt.subplot(2, 3, i+1)
+    plt.plot(traj_force[:, i], label=r"Demonstration", ls="--")
+    plt.plot(dmp_traj_force[:, i], label="DMP with new goal", lw=5, alpha=0.5)
+    plt.plot(force_record[:, i], label="sim")
+    plt.plot(track_force[:, i], label="track in real")
+    plt.plot(-track_arm_force[:, i], label="real arm force feedback")
+    plt.plot(force_err_record[:, i], label = 'err')
 plt.legend()
 plt.figure(2)
-plt.plot(traj_pos[:, 2], label=r"Demonstration, $g \approx y_0$", ls="--")
-plt.plot(dmp_traj_pos[:, 2], label="DMP with new goal", lw=5, alpha=0.5)
-plt.plot(pos_record[:, 2], label="sim")
-plt.plot(track_pos[:, 2], label="track in real")
-plt.plot(track_arm_pos[:, 2], label="real arm pos feedback")
-plt.plot(pos_err_record[:,2], label = 'err')
+for i in range(6):
+    plt.subplot(2, 3, i + 1)
+    plt.plot(traj_pos[:, i], label=r"Demonstration, $g \approx y_0$", ls="--")
+    plt.plot(dmp_traj_pos[:, i], label="DMP with new goal", lw=5, alpha=0.5)
+    plt.plot(pos_record[:, i], label="sim")
+    plt.plot(track_pos[:, i], label="track in real")
+    plt.plot(track_arm_pos[:, i], label="real arm pos feedback")
+    plt.plot(pos_err_record[:, i], label = 'err')
 # print(traj_pos[:, 2].shape, dmp_traj_pos[:, 2].shape, pos_record[:, 2].shape)
 plt.legend()
 plt.show()
