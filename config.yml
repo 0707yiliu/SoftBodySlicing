@@ -32,3 +32,19 @@ DMPs:
     new_goal_pos: [-0.088,  -0.321, 0.061,  3.029, -0.152, 0.562]
     new_start_force: [-0.052, 0.050, 0.057, -0.000, -0.001, -0.001]
     new_goal_force: [-0.232, -0.790, -0.335, -0.020,  0.040, -0.017]
+replan:
+    contact: False
+    # False: do not contact, to True: get the first time of contacting
+    ft_th: 3.0
+    # force threshold, for the first time of contacting
+    o_pz: 0.005
+    # add delta_z in position for get the contact in t2 loop
+    cut_class: 1
+    # the class of cutting
+    # 1: cut-in / cut-off, make the knife close to the ground
+    # 2: cut on the surface, do not need to replan the position Z
+
+
+
+
+

@@ -48,8 +48,8 @@ def traj_real_load(slaveforce, slavepos):
     # loading tele-trajectory from slave datasets for DMPs
     traj_force = np.load('cut_data/' + slaveforce + '.npy')
     traj_pos = np.load('cut_data/' + slavepos + '.npy')
-    traj_pos = np.delete(traj_pos, 0, 0)
-    traj_force = np.delete(traj_force, 0, 0)
+    traj_pos = np.delete(traj_pos, [0,1,2,3], 0)
+    traj_force = np.delete(traj_force, [0,1,2,3], 0)
     return traj_force, traj_pos
 
 def DMP_traj(origin_traj, new_start, new_goal):
@@ -60,12 +60,12 @@ def DMP_traj(origin_traj, new_start, new_goal):
     #   new_goal: the new goal of the trajectory
     # output:
     #   Y_dmp
-    traj = origin_traj[10:, :]
-    Y = traj
-    T = np.linspace(0, 10, traj.shape[0])
+    # traj = origin_traj[2:, :]
+    Y = origin_traj
+    T = np.linspace(0, 10, origin_traj.shape[0])
     dmp = DMP(
-        n_dims=traj.shape[1],
-        execution_time=traj.shape[0] / 100,
+        n_dims=origin_traj.shape[1],
+        execution_time=origin_traj.shape[0] / 100,
         dt=config['DMPs']['dt'],
         n_weights_per_dim=config['DMPs']['n_weights_per_dim'],
         smooth_scaling=config['DMPs']['smooth_scaling'],
