@@ -1,9 +1,21 @@
 time_sample: 0.015
 # the sampling time to control the robot
 #slave_file_date: '20240808135415' # cut-in vertical
-slave_file_date: '20240808135415' # cut-in vertical TODO: change to cut-off vertical
+slave_file_date: '20240813172422' # cut-in vertical TODO: change to cut-off vertical
+# cut-off, (the time early than 20240813172422 are cut-off)
+#20240813165806
+#20240813170156
+#20240813171350
+#20240813172422
+# cut-in (the time early than 20240813172733 to 20240813173140 are cut-off)
+#20240813172736slavepos.npy
+#20240813172858slavepos.npy
+#20240813173140slavepos.npy
+# cut on surface (the time early than 20240813173350 to 20240813173140 are cut-off)
+#20240813173536slavepos.npy
 # for DMPs follow
-track_file_date: '20240809143923'
+track_file_date: '20240813180414'
+#20240813180414 with hard stiffness sugar
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
@@ -28,14 +40,14 @@ DMPs:
     dt: 0.01
     n_weights_per_dim: 50
     smooth_scaling: True
-    new_start_pos: [-0.2575, -0.311, 0.192,  2.969, 0.152,  -0.038]
-    new_goal_pos: [-0.088,  -0.321, 0.061,  3.029, -0.152, 0.562]
+    new_start_pos: [-0.32831003, -0.22441479,  0.22995105,  2.91236979, -0.01258906, -0.8095211]
+    new_goal_pos: [-0.23837515, -0.28937625,  0.09446688,  2.97351199, -0.18660259, -0.17417273]
     new_start_force: [-0.052, 0.050, 0.057, -0.000, -0.001, -0.001]
     new_goal_force: [-0.232, -0.790, -0.335, -0.020,  0.040, -0.017]
 replan:
     contact: False
     # False: do not contact, to True: get the first time of contacting
-    ft_th: 3.0
+    ft_th: 2
     # force threshold, for the first time of contacting
     o_pz: 0.005
     # add delta_z in position for get the contact in t2 loop
@@ -43,8 +55,8 @@ replan:
     # the class of cutting
     # 1: cut-in / cut-off, make the knife close to the ground
     # 2: cut on the surface, do not need to replan the position Z
-
-
+    o_dis: 0.01
+    # the changing distance of the target, unit: meter
 
 
 

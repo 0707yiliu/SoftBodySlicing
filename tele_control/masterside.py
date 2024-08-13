@@ -66,7 +66,7 @@ while True:
         recv_data, server = sendtoslave.recvfrom(1024)
         recv_data = pickle.loads(recv_data)
         if recv_data.shape[0] == 12:
-            env_ft = recv_data[:6] / 2
+            env_ft = recv_data[:6] / 2.5
             robot_pos = recv_data[6:9]
             robot_euler = recv_data[9:]
     except socket.timeout:

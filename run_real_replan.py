@@ -14,7 +14,7 @@ import time
 
 import matplotlib.pyplot as plt
 import yaml
-import det_Tag
+from det_Tag import AprilTagDet
 import threading
 import time
 
@@ -113,12 +113,14 @@ admittance_paramsT = np.zeros((3, 3))
 target_curr = np.zeros(6)
 def det_tag():
     global target_curr
+    tag_det = AprilTagDet()
     while True:
-        target_curr = det_Tag.det_apriltag()
+        target_curr = tag_det.robot2tag()
         # TODO: change the func in det_Tag as RL_env,
         #  get the target pos and rot, need testing.
 
 det_thread = threading.Thread(target=det_tag)
+det_thread.daemon = True
 det_thread.start()
 
 # get DMP traj

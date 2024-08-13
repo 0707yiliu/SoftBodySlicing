@@ -27,7 +27,7 @@ admittance_params = np.zeros((3, 3)) # contains acc, vel and pos in xyz derictio
 admittance_paramsT = np.zeros((3, 3))
 # -------------------------------------------------
 # ------- KDL ------------
-ur3e_kdl = KDL_ROBOT('ur3e.urdf', "base_link", "tool0")
+ur3e_kdl = KDL_ROBOT('/home/yi/robotic_manipulation/SoftBodySlicing/ur3e.urdf', "base_link", "tool0")
 # ----------------------
 
 # joint_angles_curr = rtde_r.getActualQ()

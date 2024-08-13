@@ -15,7 +15,7 @@ class RegisterRobot():
         self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
         self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
         self.rtde_c.zeroFtSensor()
-        self.ur3e_kdl = KDL_ROBOT('ur3e.urdf', "base_link", "tool0")
+        self.ur3e_kdl = KDL_ROBOT('/home/yi/robotic_manipulation/SoftBodySlicing/ur3e.urdf', "base_link", "tool0")
         self.truncation_num = 6
 
     def servoJ(self, q, time, controltime, gain):
