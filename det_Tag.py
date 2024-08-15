@@ -133,6 +133,13 @@ class AprilTagDet:
             self.x = self.rootTobj[0, 3] / 100
             self.y = -self.rootTobj[1, 3] / 100
             self.z = -self.rootTobj[2, 3] / 100
+            # print(self.rootTobj[:3, :3])
+            # [[ 0.99989305 -0.00309032 -0.01429449]
+            #  [ 0.00284012  0.999843   -0.01749017]
+            #  [ 0.0143463   0.0174477   0.99974485]]
+            r = R.from_matrix(self.rootTobj[:3, :3])
+            rot = r.as_rotvec()
+            output = np.hstack([np.array([self.x, self.y, self.z]), rot])
 
         if self.enable_record is True:
             mkdir(self.recording_path + "/jpgsource/")
@@ -145,6 +152,6 @@ class AprilTagDet:
         #     n = str(i)
         #     filename = str("./image" + n + ".jpg")
         #     cv2.imwrite(filename, img)
-        return np.array([self.x, self.y, self.z])
+        return output
 
 

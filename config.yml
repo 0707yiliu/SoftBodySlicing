@@ -55,8 +55,13 @@ replan:
     # the class of cutting
     # 1: cut-in / cut-off, make the knife close to the ground
     # 2: cut on the surface, do not need to replan the position Z
-    o_dis: 0.01
+    o_pos_dis: 0.01
     # the changing distance of the target, unit: meter
-
+    o_rot_dis: 0.1
+    # the changing distance of the target, unit: rad
+    z_base: -0.01
+    # the demo traj's z-base
+    z_diff_th: 0.015
+    # to update the z-base in t2
 
 

@@ -22,6 +22,13 @@ import time
 with open('config.yml', 'r', encoding="utf-8") as f:
     config = yaml.safe_load(f)  # import config from yaml
 
+def rotver_dis(rot_err):
+    len = rot_err.shape[0]
+    sum = 0
+    for i in range(len):
+        sum = sum + (rot_err[i] ** 2)
+    dis = np.sqrt(sum)
+    return dis
 
 def forgetting(history_memory, memory_strength):
     history_num = history_memory.shape[0]
@@ -108,13 +115,13 @@ admittance_params = np.zeros((3, 3))  # contains acc, vel and pos in xyz dericti
 admittance_paramsT = np.zeros((3, 3))
 
 # sub-thread for get dynamic target pose
-target_curr = np.zeros(3) # TODO: add rot as zeros(6)
+target_curr = np.zeros(6) # TODO: add rot as zeros(6)
 def det_tag():
     global target_curr
     tag_det = AprilTagDet(rootid=9, objid=10)
     while True:
         target_curr = tag_det.robot2tag()
-        # print(target_curr)
+        print(target_curr)
         # print(x,y,z)
         # TODO: change the func in det_Tag as RL_env,
         #  get the target pos and rot, need testing.
@@ -155,6 +162,7 @@ cut_class = config['replan']['cut_class']
 # get the t1, t2 index from raw traj, which used for later contact
 t1_index = 0
 t2_index = np.argmin(traj_pos[:, 2])
+min_t2_pos_z = traj_pos[t2_index, 2] # get the minimum value
 for i in range(traj_force.shape[0]):
     if traj_force[i, 2] > ft_th: # get the first time of contacting
         t1_index = i
@@ -173,15 +181,30 @@ t1_t2_dmps_traj_pos = dmp_traj_pos[t1_index:t2_index, :]
 t1_t2_dmps_traj_force = dmp_traj_force[t1_index:t2_index, :]
 t2_back_dmps_traj_pos = dmp_traj_pos[t2_index:, :]
 t2_back_dmps_traj_force = dmp_traj_force[t2_index:, :]
-t0_t2_goal_pos_last = np.copy(t1_t2_dmps_traj_pos[-1, :])
-t0_t2_goal_pos_curr = np.copy(t1_t2_dmps_traj_pos[-1, :])
-o_dis = config['replan']['o_dis']
+t0_t1_goal_pos_last = np.copy(t0_t1_dmps_traj_pos[-1, :])
+t0_t1_goal_pos_curr = np.copy(t0_t1_dmps_traj_pos[-1, :])
+# record the changing of curr target rot
+curr_rot = np.zeros(3) # current rotation
+# last_rot = np.zeros(3) # last time of rotation, (useless 'cause init rot is assumed as zero)
+# delta_rot = np.zeros(3) # the changing rotation in the whole loop (useless 'cause init rot is assumed as zero)
+t0_t2_goal_rot = np.copy(t1_t2_dmps_traj_pos[-1, 3:])
+t0_t2_goal_rot_last = np.copy(t1_t2_dmps_traj_pos[-1, 3:])
+
+o_pos_dis = config['replan']['o_pos_dis']
+o_rot_dis = config['replan']['o_rot_dis']
+z_base = config['replan']['z_base']
+z_diff_th = config['replan']['z_diff_th']
 get_t2_start_from_t1end = False
 get_back_from_t2end = False
 touch_stuff = False # contact the stuff first time on t2 loop
+t1_modified = False # t1 traj is modified or not, generate the new demo traj and keep it
+t2_modified = False
 _index = 0 # for re-planning loop
 i = 0 # for the whole loop
 delta_z_times = 0 # the amount of using o_pz at t2 stage
+z_t2_dyn = 0 # for update the z-base in t2
+z_delta = 0
+z_t2_dyn_c2 = 0
 
 time.sleep(1) # refresh the marker position
 
@@ -192,97 +215,135 @@ for lenloop in range(dmp_traj_force.shape[0]):
     curr_ft = np.around(myrobot.getTCPFT(), truncation_num)
     # --------------- replanning the dmps traj -------------
     # get the current goal from sub-thread det_Tag
-    current_goal = np.copy(target_curr)
-    # change the goal x and y for t0-t2, do not need to change z-axis because the delta-z can find the Z-deep
-    t0_t2_goal_pos_curr[0] = np.copy(current_goal[0]) # x
-    t0_t2_goal_pos_curr[1] = np.copy(current_goal[1]) # y
+    current_goal = np.copy(target_curr[:3])
+    # change the goal x and y for t0-t1, do not need to change z-axis because the delta-z can find the Z-deep
+    t0_t1_goal_pos_curr[0] = np.copy(current_goal[0]) # x
+    t0_t1_goal_pos_curr[1] = np.copy(current_goal[1]) # y
+    # calculate the changing rotation for the whole loop, to change the dmp traj of rot
+    curr_rot = np.copy(target_curr[3:])
+    t0_t2_goal_pos = np.copy(t0_t1_goal_pos_curr)
+    t0_t2_goal_pos[3:] = t0_t2_goal_rot + curr_rot
+
     # DMP need too much time, hence, re-plan the traj when target moving
-    print(target_curr, t0_t2_goal_pos_last[:3])
+    # print(target_curr, t0_t1_goal_pos_last, t1_t2_dmps_traj_pos[-1, :])
     if i < t1_index: # t0-t1 arriving
         # print(i, t1_index)
         # later contact / contact on time ---------------------
         # calculate the changing distance
-        change_dis = np.linalg.norm(t0_t2_goal_pos_curr[:2] - t0_t2_goal_pos_last[:2])
-        if change_dis > o_dis:
-            print('---------------', change_dis)
-            t0_t2_goal_pos = np.copy(t0_t2_goal_pos_curr)
-            # generate traj between t0-t2
-            t0_t2_dmp_traj_pos = DMP_traj(dmp_traj_pos[:t2_index, :], new_start_pos, t0_t2_goal_pos)
+        change_pos_dis = np.linalg.norm(t0_t1_goal_pos_curr[:2] - t0_t1_goal_pos_last[:2])
+        change_rot_dis = rotver_dis(t0_t2_goal_pos[3:] - t0_t2_goal_rot_last)
+        if change_pos_dis > o_pos_dis or change_rot_dis > o_rot_dis:
+            t1_modified = True # t1 traj has been replanned
+            # print('---------------', change_pos_dis)
+            # print(change_rot_dis, t0_t2_goal_pos[3:], t0_t2_goal_rot_last, t0_t2_goal_pos[3:] - t0_t2_goal_rot_last)
+            # generate traj between t0-t2, because t2 is the lowest position, we use t0-t2 to genreate t0-t1
+            t0_t1_dmp_traj_pos = DMP_traj(dmp_traj_pos[:t2_index, :], new_start_pos, t0_t2_goal_pos)
             # regenerate the dmp traj for t0-t1
-            replan_dmp_traj_pos = t0_t2_dmp_traj_pos[:t1_index, :]
+            replan_dmp_traj_pos = t0_t1_dmp_traj_pos[:t1_index, :]
             # follow the raw force traj
             t1_new_goal_force = t0_t1_dmps_traj_force[-1, :]
             replan_dmp_traj_force = DMP_traj(t0_t1_dmps_traj_force, new_start_force, t1_new_goal_force)
         else:
-            replan_dmp_traj_pos = np.copy(t0_t1_dmps_traj_pos) # TODO: change this, it's error
-            replan_dmp_traj_force = np.copy(t0_t1_dmps_traj_force)
+            if t1_modified is False:
+                replan_dmp_traj_pos = np.copy(t0_t1_dmps_traj_pos) # the t1_modified gate is used to keep the new traj
+                replan_dmp_traj_force = np.copy(t0_t1_dmps_traj_force)
+            else:
+                pass
         if _index < replan_dmp_traj_pos.shape[0] - 1:
             _index += 1
-        t0_t2_goal_pos_last = np.copy(t0_t2_goal_pos_curr)
+        t0_t1_goal_pos_last = np.copy(t0_t1_goal_pos_curr)
+        t0_t2_goal_rot_last = np.copy(t0_t2_goal_pos[3:])
         # advance contact -------------------------------------
         # the knife contact the stuff in advance, change the t1_index and add to t2_index
-        # if curr_ft[2] >= ft_th:
-        #     t1_index = _index - 1 # cut the t1_index
-        #     # re-change the t1 and t2 index
-        #     t0_t1_dmps_traj_pos = dmp_traj_pos[:t1_index, :]
-        #     t0_t1_dmps_traj_force = dmp_traj_force[:t1_index, :]
-        #     t1_t2_dmps_traj_pos = dmp_traj_pos[t1_index:t2_index, :]
-        #     t1_t2_dmps_traj_force = dmp_traj_force[t1_index:t2_index, :]
-            # # replan the t1 traj for t2 using
-            # pos, rot = myrobot.getToolPos()
-            # current_pos = np.hstack([pos, rot])
-            # replan_dmp_traj_pos = DMP_traj(t0_t1_dmps_traj_pos, new_start_pos, current_pos)
-            # replan_dmp_traj_force = DMP_traj(t0_t1_dmps_traj_force, new_start_force, curr_ft)
+        if curr_ft[2] >= ft_th:
+            t1_index = _index + 1 # cut the t1_index
+            pos, rot = myrobot.getToolPos()
+            current_pos = np.hstack([pos, rot])
+            if cut_class == 2: # cut on the surface, need to record the current delta z-position
+                z_t2_dyn_c2 = pos[-1] - dmp_traj_pos[t1_index-1, 2]
+            # re-change the t1 and t2 index
+            t0_t1_dmps_traj_pos = dmp_traj_pos[:t1_index, :]
+            t0_t1_dmps_traj_force = dmp_traj_force[:t1_index, :]
+            t1_t2_dmps_traj_pos = dmp_traj_pos[t1_index:t2_index, :]
+            t1_t2_dmps_traj_force = dmp_traj_force[t1_index:t2_index, :]
+            # replan the t1 traj for t2 using
+            replan_dmp_traj_pos = DMP_traj(t0_t1_dmps_traj_pos, new_start_pos, current_pos)
+            replan_dmp_traj_force = DMP_traj(t0_t1_dmps_traj_force, new_start_force, curr_ft)
+
 # ------------ plot replan traj -----------------------
-print(t0_t1_dmps_traj_pos.shape, replan_dmp_traj_pos.shape)
-plt.figure(1)
-for i in range(6):
-    plt.subplot(2, 3, i+1)
-    plt.plot(t0_t1_dmps_traj_pos[:, i], label=r"Demonstration, $g \approx y_0$", ls="--")
-    plt.plot(replan_dmp_traj_pos[:, i], label="DMP with new goal", lw=5, alpha=0.5)
-plt.legend()
-plt.show()
+# print(_index)
+# print(t0_t1_dmps_traj_pos.shape, replan_dmp_traj_pos.shape)
+# plt.figure(1)
+# for i in range(6):
+#     plt.subplot(2, 3, i+1)
+#     plt.plot(t0_t1_dmps_traj_pos[:, i], label=r"Demonstration, $g \approx y_0$", ls="--")
+#     plt.plot(replan_dmp_traj_pos[:, i], label="DMP with new goal", lw=5, alpha=0.5)
+# plt.legend()
+# plt.show()
 # ------------------------------------------------------
 #
-#     elif i <= t2_index: # t1-t2 cutting
-#         if touch_stuff is False:
-#             if curr_ft[2] >= ft_th: # get the first time of contacting
-#                 touch_stuff = True
-#             else:
-#                 replan_dmp_traj_pos[_index, 2] -= o_pz
-#                 delta_z_times += 1
-#                 i -= 1 # fix the while loop index i
-#                 # _index = replan_dmp_traj_pos.shape[0] - 1 # fix the index for controlling
-#         if touch_stuff is True:
-#             _index += 1
-#             if get_t2_start_from_t1end is False: # get the start of t2 one time
-#                 get_t2_start_from_t1end = True
-#                 t2_new_start_pos = replan_dmp_traj_pos[-1, :]
-#                 t2_new_start_force = replan_dmp_traj_force[-1, :]
-#                 _index = 0
-#             # this goal position need to be classified
-#             # TODO: now is class1 for cut-in and cut-off, we need slice on surface as class2
-#             if cut_class == 1:
-#                 t2_new_goal_pos = t1_t2_dmps_traj_pos[-1, :] # TODO: use delta to change the traj
-#                 t2_new_goal_force = t1_t2_dmps_traj_force[-1, :]
-#                 # TODO: change to the end of dmp traj
-#                 t2_new_goal_pos[2] = t1_t2_dmps_traj_pos[-1, :]
-#             elif cut_class == 2:
-#                 t2_new_goal_pos = t1_t2_dmps_traj_pos[-1, :]
-#                 t2_new_goal_force = t1_t2_dmps_traj_force[-1, :]
-#             replan_dmp_traj_pos = DMP_traj(t1_t2_dmps_traj_pos, t2_new_start_pos, t2_new_goal_pos)
-#             replan_dmp_traj_force = DMP_traj(t1_t2_dmps_traj_force, t2_new_start_force, t2_new_goal_force)
-#     else: # t2-t3 back
-#         _index += 1
-#         if get_back_from_t2end is False:  # get the start of back one time
-#             get_back_from_t2end = True
-#             back_new_start_pos = replan_dmp_traj_pos[-1, :]
-#             back_new_start_force = replan_dmp_traj_force[-1, :]
-#             _index = 0
-#         replan_dmp_traj_pos = DMP_traj(t2_back_dmps_traj_pos, back_new_start_pos, t2_back_dmps_traj_pos[-1, :])
-#         replan_dmp_traj_force = DMP_traj(t2_back_dmps_traj_force, back_new_start_force, t2_back_dmps_traj_force[-1, :])
-#         if _index == replan_dmp_traj_pos.shape[0]:
-#             break # get the end pos, break the while loop and quit the whole system
+    elif i <= t2_index: # t1-t2 cutting
+        change_pos_dis = np.linalg.norm(t0_t1_goal_pos_curr[:2] - t0_t1_goal_pos_last[:2])
+        change_rot_dis = rotver_dis(t0_t2_goal_pos[3:] - t0_t2_goal_rot_last)
+        if touch_stuff is False:
+            if curr_ft[2] >= ft_th: # get the first time of contacting
+                touch_stuff = True
+            else:
+                replan_dmp_traj_pos[_index, 2] -= o_pz
+                delta_z_times += 1
+                i -= 1 # fix the while loop index i
+                # _index = replan_dmp_traj_pos.shape[0] - 1 # fix the index for controlling
+        else:
+            if get_t2_start_from_t1end is False: # get the start of t2 one time
+                get_t2_start_from_t1end = True
+                t2_new_start_pos = replan_dmp_traj_pos[-1, :]
+                t2_new_start_force = replan_dmp_traj_force[-1, :]
+                _index = 0
+            # this goal position need to be classified
+            # TODO: now is class1 for cut-in and cut-off, we need slice on surface as class2
+            z_diff = abs(current_goal[2] - z_base)
+            # the current goal's z is the bottom of the stuff, z_base is the that of testing
+            if z_diff > z_diff_th:
+                z_t2_dyn = current_goal[2] - z_base
+                z_base = current_goal[2]
+            else:
+                z_t2_dyn = 0
+            z_delta = z_delta + z_t2_dyn
+            if cut_class == 1:
+                t2_new_goal_z_pos = t1_t2_dmps_traj_pos[-1, 2] + z_delta
+                # because cut-in and cut-off need to make the knife close to the base,
+                # so just use z-base and curr z-base to modify the target
+            elif cut_class == 2:
+                t2_new_goal_z_pos = t1_t2_dmps_traj_pos[-1, 2] - o_pz * delta_z_times + z_delta + z_t2_dyn_c2
+                # TODO: more thinking here for delta z
+            t0_t2_goal_pos[2] = np.copy(t2_new_goal_z_pos)
+            if change_pos_dis > o_pos_dis or change_rot_dis > o_rot_dis or z_t2_dyn != 0:
+                replan_dmp_traj_pos = DMP_traj(t1_t2_dmps_traj_pos, t2_new_start_pos, t0_t2_goal_pos)
+                t2_new_goal_force = t1_t2_dmps_traj_force[-1, :]
+                replan_dmp_traj_force = DMP_traj(t1_t2_dmps_traj_force, t2_new_start_force, t2_new_goal_force)
+                t2_modified = True
+            else:
+                if t2_modified is False:
+                    replan_dmp_traj_pos = np.copy(
+                        t0_t1_dmps_traj_pos)  # the t1_modified gate is used to keep the new traj
+                    replan_dmp_traj_force = np.copy(t0_t1_dmps_traj_force)
+                else:
+                    pass
+            if _index < replan_dmp_traj_pos.shape[0] - 1:
+                _index += 1
+        t0_t1_goal_pos_last = np.copy(t0_t1_goal_pos_curr)
+        t0_t2_goal_rot_last = np.copy(t0_t2_goal_pos[3:])
+    else: # t2-t3 back
+        _index += 1
+        if get_back_from_t2end is False:  # get the start of back one time
+            get_back_from_t2end = True
+            back_new_start_pos = replan_dmp_traj_pos[-1, :]
+            back_new_start_force = replan_dmp_traj_force[-1, :]
+            _index = 0
+        replan_dmp_traj_pos = DMP_traj(t2_back_dmps_traj_pos, back_new_start_pos, t2_back_dmps_traj_pos[-1, :])
+        replan_dmp_traj_force = DMP_traj(t2_back_dmps_traj_force, back_new_start_force, t2_back_dmps_traj_force[-1, :])
+        if _index == replan_dmp_traj_pos.shape[0]:
+            break # get the end pos, break the while loop and quit the whole system
 #     # -----------------------------------------------------------------
 #     adm_force = desired_force + curr_ft
 #     position_d, rotation_d, admittance_params, admittance_paramsT = admcontroller.admittance_control(
