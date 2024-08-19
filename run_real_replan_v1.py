@@ -245,6 +245,7 @@ for lenloop in range(dmp_traj_force.shape[0]):
         # calculate the changing distance
         change_pos_dis = np.linalg.norm(t0_t1_goal_pos_curr[:2] - t0_t1_goal_pos_last[:2])
         change_rot_dis = rotver_dis(t0_t2_goal_pos[3:] - t0_t2_goal_rot_last)
+        # TODO： the change-dis need to be modified, too fast and useless !!!!!!!
         # print('target xy:', current_goal)
         if change_pos_dis > o_pos_dis or change_rot_dis > o_rot_dis:
             t1_modified = True # t1 traj has been replanned
