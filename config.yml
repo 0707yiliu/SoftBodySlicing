@@ -1,7 +1,7 @@
 time_sample: 0.015
 # the sampling time to control the robot
 #slave_file_date: '20240808135415' # cut-in vertical
-slave_file_date: '20240813172422' # cut-in vertical TODO: change to cut-off vertical
+slave_file_date: '20240819145035' # cut-in vertical TODO: change to cut-off vertical
 # cut-off, (the time early than 20240813172422 are cut-off)
 #20240813165806
 #20240813170156
@@ -14,11 +14,13 @@ slave_file_date: '20240813172422' # cut-in vertical TODO: change to cut-off vert
 # cut on surface (the time early than 20240813173350 to 20240813173140 are cut-off)
 #20240813173536slavepos.npy
 # for DMPs follow
-track_file_date: '20240813180414'
+track_file_date: '20240819160259'
 #20240813180414 with hard stiffness sugar
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
+run_mode: False
+# the running mode of the replan. False: sim with plot, True: real robot movej
 forgetting_err:
     memory_strength: 0.01
     memory_strength_rot: 0.01
@@ -49,7 +51,7 @@ replan:
     # False: do not contact, to True: get the first time of contacting
     ft_th: 2
     # force threshold, for the first time of contacting
-    o_pz: 0.005
+    o_pz: 0.0002
     # add delta_z in position for get the contact in t2 loop
     cut_class: 1
     # the class of cutting

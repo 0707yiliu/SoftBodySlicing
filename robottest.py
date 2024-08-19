@@ -12,4 +12,11 @@ print(curr_pos, curr_euler)
 # [-0.16992376 -0.26399856 -0.01603487] [ 3.13025205e+00 -2.89415282e-04 -2.46277454e-05]
 # take knife
 # [-0.24890595 -0.18501712 -0.01696009] [ 3.13382234 -0.00819066 -0.78536004]
+# -0.2942994  -0.26849063  0.0231819
+# -0.29611479 -0.25777778 -0.01134123  / marker
 
+# from det_Tag import AprilTagDet
+# tag_det = AprilTagDet(rootid=9, objid=10, render=True)
+# while True:
+#     target_curr = tag_det.robot2tag()
+#     print(target_curr)

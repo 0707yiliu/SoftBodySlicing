@@ -22,13 +22,15 @@ def mkdir(path):
         pass
 
 class AprilTagDet:
-    def __init__(self, rootid=9, objid=10, enable_recording=False, path=None) -> None:
+    def __init__(self, rootid=9, objid=10, enable_recording=False, path=None, render=False) -> None:
         self.pipeline = rs.pipeline() # define the pipeline
         self.config = rs.config() # define the configuration
         self.config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, 30) # config the color stream
         self.profile = self.pipeline.start(self.config)
         self.align_to = rs.stream.color
         self.align = rs.align(self.align_to)
+
+        self.render = render
 
         # self.FHD_fx = 914.676513671875 # 1280,720
         # self.FHD_fy = 912.8101196289062
@@ -55,7 +57,7 @@ class AprilTagDet:
         self.tag_len = 4.15
         self.tag_outer_side = 1.02
         obj_offset_x = 0
-        obj_offset_y = 9.66
+        obj_offset_y = 7.66
         obj_offset_z = 0
         root_z_offset = 2.03
         root_base_x = 13.1
@@ -98,11 +100,12 @@ class AprilTagDet:
         at_detactor = apriltag.Detector(apriltag.DetectorOptions(families="tag36h11"))
         tags = at_detactor.detect(gray)
         for tag in tags:
-            # H = tag.homography
-            # num, Rs, Ts, Ns = cv2.decomposeHomographyMat(H, self.K)
-            # r = R.from_matrix(Rs[3].T)
-            # for i in range(4):
-            #     cv2.circle(img, tuple(tag.corners[i].astype(int)), 4, (255, 0, 0), 2)
+            if self.render is True:
+                H = tag.homography
+                num, Rs, Ts, Ns = cv2.decomposeHomographyMat(H, self.K)
+                r = R.from_matrix(Rs[3].T)
+                for i in range(4):
+                    cv2.circle(img, tuple(tag.corners[i].astype(int)), 4, (255, 0, 0), 2)
 
             M, e1, e2 = at_detactor.detection_pose(tag, self.K1)
             P = M[:3, :4]
@@ -116,10 +119,10 @@ class AprilTagDet:
             self.x = self.x / self.x[2]
             self.y = np.matmul(P, np.array([[0], [-1], [0], [1]]))
             self.y = self.y / self.y[2]
-
-            # cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.x[:2].T, axis=0).astype(int)), (0, 0, 255), 2)
-            # cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.y[:2].T, axis=0).astype(int)), (0, 255, 0), 2)
-            # cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.z[:2].T, axis=0).astype(int)), (255, 0, 0), 2)
+            if self.render is True:
+                cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.x[:2].T, axis=0).astype(int)), (0, 0, 255), 2)
+                cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.y[:2].T, axis=0).astype(int)), (0, 255, 0), 2)
+                cv2.line(img, tuple(tag.center.astype(int)), tuple(np.squeeze(self.z[:2].T, axis=0).astype(int)), (255, 0, 0), 2)
 
             M[:3, 3] = t
             if tag.tag_id == self.id_root:
@@ -146,12 +149,13 @@ class AprilTagDet:
             self.recording_count += 1
             filename = str(self.recording_path + "/jpgsource/" + str(self.recording_count) + ".jpg")
             cv2.imwrite(filename, img)
-        # cv2.imshow("camera-image", img)
-        # if cv2.waitKey(1) & 0xFF == ord("j"):
-        #     i += 1
-        #     n = str(i)
-        #     filename = str("./image" + n + ".jpg")
-        #     cv2.imwrite(filename, img)
+        if self.render is True:
+            cv2.imshow("camera-image", img)
+            if cv2.waitKey(1) & 0xFF == ord("j"):
+                i += 1
+                n = str(i)
+                filename = str("./image" + n + ".jpg")
+                cv2.imwrite(filename, img)
         return output
 
 
