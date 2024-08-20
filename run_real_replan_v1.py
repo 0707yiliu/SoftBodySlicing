@@ -172,8 +172,10 @@ if t1_index >= t2_index:
     print('wrong time step index, quit and check')
     input()
 # the new start pos is fixed, the new goal between t0-t2 is replaced by current marker pose
-dmp_traj_force = DMP_traj(traj_force, new_start_force, new_goal_force)
-dmp_traj_pos = DMP_traj(traj_pos, new_start_pos, new_goal_pos)
+# dmp_traj_force = DMP_traj(traj_force, new_start_force, new_goal_force)
+# dmp_traj_pos = DMP_traj(traj_pos, new_start_pos, new_goal_pos)
+dmp_traj_pos = np.copy(traj_pos)
+dmp_traj_force = np.copy(traj_force)
 # separate the trajectories
 t0_t1_dmps_traj_pos = dmp_traj_pos[:t1_index, :]
 t0_t1_dmps_traj_force = dmp_traj_force[:t1_index, :]
@@ -218,7 +220,8 @@ t3_p_record = np.array([])
 
 time.sleep(1) # refresh the marker position
 
-for lenloop in range(dmp_traj_force.shape[0]):
+# for lenloop in range(dmp_traj_force.shape[0]): # lose some traj because the t2 phase
+while True:
     i += 1
     if run_mode is True:
         time.sleep(t_sample)
@@ -396,7 +399,7 @@ for lenloop in range(dmp_traj_force.shape[0]):
         pos_memory[0, :] = r_traj_pos(position_d, replan_dmp_traj_pos[_index, :3])  # pos err
         pos_r_t = forgetting(history_memory=pos_memory, memory_strength=memory_strength)
         rot_memory = np.roll(rot_memory, 1, axis=0)
-        rot_memory[0, :] = r_traj_pos(rotation_d, replan_dmp_traj_pos[_index, 3:])  # pos err
+        rot_memory[0, :] = r_traj_pos(rotation_d, replan_dmp_traj_pos[_index, 3:])  # rot err
         rot_r_t = forgetting(history_memory=rot_memory, memory_strength=memory_strength_rot)
         ## -------- calculate force by (Ft = mv' - mv) -----
         # e_force = (pos_r_t - 2 * pos_r_t_1 + pos_r_t_2) / (t_sample )
