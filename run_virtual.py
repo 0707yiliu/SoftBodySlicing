@@ -170,8 +170,12 @@ for i in range(dmp_traj_force.shape[0]):
     pos_record = np.vstack([pos_record, pos_d])
     force_record = np.vstack([force_record, desired_force])
 plt.figure(1)
+_title = ['fx', 'fy', 'fz', 'tx', 'ty', 'tz']
 for i in range(6):
     plt.subplot(2, 3, i+1)
+    plt.title(_title[i])
+    plt.xlabel('time')
+    plt.ylabel('force')
     plt.plot(traj_force[:, i], label=r"Demonstration", ls="--")
     plt.plot(dmp_traj_force[:, i], label="DMP with new goal", lw=5, alpha=0.5)
     plt.plot(force_record[:, i], label="sim")
@@ -179,9 +183,14 @@ for i in range(6):
     plt.plot(-track_arm_force[:, i], label="real arm force feedback")
     plt.plot(force_err_record[:, i], label = 'err')
 plt.legend()
+
 plt.figure(2)
+_title = ['x', 'y', 'z', 'rx', 'ry', 'rz']
 for i in range(6):
     plt.subplot(2, 3, i + 1)
+    plt.title(_title[i])
+    plt.xlabel('time')
+    plt.ylabel('pos')
     plt.plot(traj_pos[:, i], label=r"Demonstration, $g \approx y_0$", ls="--")
     plt.plot(dmp_traj_pos[:, i], label="DMP with new goal", lw=5, alpha=0.5)
     plt.plot(pos_record[:, i], label="sim")
@@ -190,5 +199,16 @@ for i in range(6):
     plt.plot(pos_err_record[:, i], label = 'err')
 # print(traj_pos[:, 2].shape, dmp_traj_pos[:, 2].shape, pos_record[:, 2].shape)
 plt.legend()
+
+plt.figure(3)
+plt.plot(dmp_traj_pos[:, 0],  ls="-", lw=3, alpha=0.8)
+plt.yticks([])
+plt.xticks([])
+ax = plt.gca()
+#设置上边和右边无边框
+ax.spines['right'].set_color('none')
+ax.spines['top'].set_color('none')
+ax.spines['left'].set_linewidth(3)
+ax.spines['bottom'].set_linewidth(3)
 plt.show()
 

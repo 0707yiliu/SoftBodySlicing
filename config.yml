@@ -14,18 +14,18 @@ slave_file_date: '20240819145035' # cut-in vertical TODO: change to cut-off vert
 # cut on surface (the time early than 20240813173350 to 20240813173140 are cut-off)
 #20240813173536slavepos.npy
 # for DMPs follow
-track_file_date: '20240819160259'
+track_file_date: '20240902173732'
 #20240813180414 with hard stiffness sugar
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
-run_mode: False
+run_mode: True
 # the running mode of the replan. False: sim with plot, True: real robot movej
 forgetting_err:
     memory_strength: 0.01
     memory_strength_rot: 0.01
     # the smaller, the stronger nonlinear
-    memory_number: 100
+    memory_number: 50
     # the number of the memory
     to_force_coefficient: 0.085
     to_torque_coefficient: 0.05
@@ -57,7 +57,7 @@ replan:
     # the class of cutting
     # 1: cut-in / cut-off, make the knife close to the ground
     # 2: cut on the surface, do not need to replan the position Z
-    o_pos_dis: 0.01
+    o_pos_dis: 0.008
     # the changing distance of the target, unit: meter
     o_rot_dis: 0.1
     # the changing distance of the target, unit: rad
