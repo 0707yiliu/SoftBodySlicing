@@ -84,8 +84,9 @@ new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
 new_start_force = np.array(config['DMPs']['new_start_force'])
 new_goal_force = np.array(config['DMPs']['new_goal_force'])
 # get demonstrated traj from traj_load func
-slave_force = config['slave_file_date'] + 'slaveforce' # for virtual DMP virtual force
-slave_pos = config['slave_file_date'] + 'slavepos'
+traj_name = config['traj_name']
+slave_force = config['slave_file_date'] + 'slaveforce' + traj_name# for virtual DMP virtual force
+slave_pos = config['slave_file_date'] + 'slavepos' + traj_name
 traj_force, traj_pos = traj_load(slave_force, slave_pos)
 slave_force = config['track_file_date'] + 'force' # display the real tracking
 slave_pos = config['track_file_date'] + 'pos'
@@ -178,10 +179,10 @@ for i in range(6):
     plt.ylabel('force')
     plt.plot(traj_force[:, i], label=r"Demonstration", ls="--")
     plt.plot(dmp_traj_force[:, i], label="DMP with new goal", lw=5, alpha=0.5)
-    plt.plot(force_record[:, i], label="sim")
+    # plt.plot(force_record[:, i], label="sim")
     plt.plot(track_force[:, i], label="track in real")
     plt.plot(-track_arm_force[:, i], label="real arm force feedback")
-    plt.plot(force_err_record[:, i], label = 'err')
+    plt.plot(force_err_record[:, i], label='err')
 plt.legend()
 
 plt.figure(2)
@@ -193,7 +194,7 @@ for i in range(6):
     plt.ylabel('pos')
     plt.plot(traj_pos[:, i], label=r"Demonstration, $g \approx y_0$", ls="--")
     plt.plot(dmp_traj_pos[:, i], label="DMP with new goal", lw=5, alpha=0.5)
-    plt.plot(pos_record[:, i], label="sim")
+    # plt.plot(pos_record[:, i], label="sim")
     plt.plot(track_pos[:, i], label="track in real")
     plt.plot(track_arm_pos[:, i], label="real arm pos feedback")
     plt.plot(pos_err_record[:, i], label = 'err')

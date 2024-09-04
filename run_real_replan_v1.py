@@ -123,8 +123,9 @@ new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
 new_start_force = np.array(config['DMPs']['new_start_force'])
 new_goal_force = np.array(config['DMPs']['new_goal_force'])
 # get demonstrated traj from traj_load func
-slave_force = config['slave_file_date'] + 'slaveforce'
-slave_pos = config['slave_file_date'] + 'slavepos'
+traj_name = config['traj_name']
+slave_force = config['slave_file_date'] + 'slaveforce' + traj_name
+slave_pos = config['slave_file_date'] + 'slavepos' + traj_name
 traj_force, traj_pos = traj_load(slave_force, slave_pos)
 # define admittance control for auto-robot
 admcontroller = AdmController(m=config['admittance_controller']['mass'],
@@ -160,6 +161,8 @@ curr_pos, curr_euler = myrobot.getToolPos()
 # drive robot, TODO: the time need to be considered
 pos_record = np.array([0, 0, 0, 0, 0, 0])
 desired_force = np.array([0, 0, 0, 0, 0, 0])
+desired_force_t_1 = np.array([0, 0, 0, 0, 0, 0])
+desired_force_t_2 = np.array([0, 0, 0, 0, 0, 0])
 force_record = np.array([0, 0, 0, 0, 0, 0])
 curr_force_record = np.array([0, 0, 0, 0, 0, 0])
 arm_pos_record = np.array([0, 0, 0, 0, 0, 0])
@@ -198,7 +201,17 @@ if t1_index >= t2_index:
 # the new start pos is fixed, the new goal between t0-t2 is replaced by current marker pose
 dmp_traj_force = DMP_traj(traj_force, new_start_force, new_goal_force)
 dmp_traj_pos = DMP_traj(traj_pos, new_start_pos, new_goal_pos)  # get the dmp force the imitation of derivative
-deriv_traj_force = trj_derivative(dmp_traj_force, t_sample)
+deriv_traj_force = trj_derivative(-dmp_traj_force, t_sample)
+
+# plt.figure(1)
+# for i in range(6):
+#     plt.subplot(2, 3, i + 1)
+#     plt.plot(deriv_traj_force[:, i])
+#     plt.plot(dmp_traj_force[:, i])
+# plt.show()
+# print('show down')
+# input()
+
 # dmp_traj_pos = np.copy(traj_pos)
 # dmp_traj_force = np.copy(traj_force)
 # separate the trajectories
@@ -238,6 +251,9 @@ delta_z_times = 0  # the amount of using o_pz at t2 stage
 z_t2_dyn = 0  # for update the z-base in t2
 z_delta = 0
 z_t2_dyn_c2 = 0
+cut_phase = 0
+
+f_shape_compensation_alpha = config['replan']['f_shape_compensation_alpha']
 
 t1_p_record = np.array([])
 t2_p_record = np.array([])
@@ -270,6 +286,7 @@ while True:
     # DMP need too much time, hence, re-plan the traj when target moving
     # print(target_curr, t0_t1_goal_pos_last, t1_t2_dmps_traj_pos[-1, :])
     if i < t1_index:  # t0-t1 arriving
+        cut_phase = 1
         # print(i, t1_index)
         # later contact / contact on time ---------------------
         # calculate the changing distance
@@ -332,8 +349,9 @@ while True:
     # plt.legend()
     # plt.show()
     # # ------------------------------------------------------
-    # #
+
     elif i <= t2_index:  # t1-t2 cutting
+        cut_phase = 2
         change_pos_dis = np.linalg.norm(t0_t1_goal_pos_curr[:2] - t0_t1_goal_pos_last[:2])
         change_rot_dis = rotver_dis(t0_t2_goal_pos[3:] - t0_t2_goal_rot_last)
         if touch_stuff is False:
@@ -397,6 +415,7 @@ while True:
             t0_t2_goal_rot_last = np.copy(t0_t2_goal_pos[3:])
     else:  # t2-t3 back
         _index += 1
+        cut_phase = 3
         if get_back_from_t2end is False:  # get the start of back one time
             get_back_from_t2end = True
             back_new_start_pos = np.copy(replan_dmp_traj_pos[-1, :])
@@ -438,8 +457,20 @@ while True:
         pos_r_t_1 = np.copy(pos_r_t)
         # desired_force[:3] = e_force - replan_dmp_traj_force[_index, :3]
         # desired_force[3:] = e_torque - replan_dmp_traj_force[_index, 3:]
-        desired_force[:3] = np.copy(e_force) # TODO: follow the paper's formular
-        desired_force[3:] = np.copy(e_torque)
+        # desired_force[:3] = np.copy(e_force) # TODO: follow the paper's formular
+        # desired_force[3:] = np.copy(e_torque)
+        e_ft = np.hstack([e_force, e_torque])
+        if cut_phase == 2: # cutting phase
+            desired_force = (1 - f_shape_compensation_alpha) * e_ft + f_shape_compensation_alpha * (desired_force_t_2 + 2 * t_sample * (deriv_traj_force[_index, :]))
+        else: # reaching, leaving phase
+            desired_force = e_ft * 1.5 # testing
+        # desired_force[3:] = (1 - f_shape_compensation_alpha) * e_torque + f_shape_compensation_alpha * (desired_force_t_2[3:] + 2 * t_sample * (deriv_traj_force[_index, 3:]))
+        desired_force_t_2 = np.copy(desired_force_t_1)
+        desired_force_t_1 = np.copy(desired_force)
+        # print(
+        #       (1 - f_shape_compensation_alpha) * e_ft,
+        #       desired_force,
+        # )
         # print(e_force, desired_force)
         # -------------------------------------------
         # print(position_d, rotation_d)

@@ -7,6 +7,12 @@ import numpy as np
 from admittance_controller.core import FT_controller as AdmController
 from register_robot import RegisterRobot
 
+import yaml
+with open('/home/yi/robotic_manipulation/SoftBodySlicing/config.yml', 'r', encoding="utf-8") as f:
+    config = yaml.safe_load(f)  # import config from yaml
+
+traj_name = config['traj_name']
+
 def lowpass_filter(last, cur, ratio):
     new = ratio * last + (1 - ratio) * cur
     return new
@@ -98,8 +104,8 @@ while True:
     p_h = np.hstack([p_rp, p_rr])
     pos_record = np.vstack([pos_record, p_h])
     force_record = np.vstack([force_record, last_ft])
-    np.save('data/' + current_time + 'slavepos', pos_record)
-    np.save('data/' + current_time + 'slaveforce', force_record)
+    np.save('data/' + current_time + 'slavepos' + traj_name, pos_record)
+    np.save('data/' + current_time + 'slaveforce' + traj_name, force_record)
     try:
         i += 1
         sample_time.append(i)

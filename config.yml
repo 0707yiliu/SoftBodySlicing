@@ -1,21 +1,10 @@
 time_sample: 0.015
 # the sampling time to control the robot
-#slave_file_date: '20240808135415' # cut-in vertical
-slave_file_date: '20240819145035' # cut-in vertical TODO: change to cut-off vertical
-# cut-off, (the time early than 20240813172422 are cut-off)
-#20240813165806
-#20240813170156
-#20240813171350
-#20240813172422
-# cut-in (the time early than 20240813172733 to 20240813173140 are cut-off)
-#20240813172736slavepos.npy
-#20240813172858slavepos.npy
-#20240813173140slavepos.npy
-# cut on surface (the time early than 20240813173350 to 20240813173140 are cut-off)
-#20240813173536slavepos.npy
+slave_file_date: '20240903171527' # cut-in vertical
 # for DMPs follow
-track_file_date: '20240902173732'
-#20240813180414 with hard stiffness sugar
+traj_name: 'cutoff'
+# the trajectory name for recording (cutoff, cutin, slice, $dig$)
+track_file_date: '20240903180421'
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
@@ -65,5 +54,7 @@ replan:
     # the demo traj's z-base
     z_diff_th: 0.015
     # to update the z-base in t2
+    f_shape_compensation_alpha: 0.7
+    # the weight for force-shape compensation
 
 
