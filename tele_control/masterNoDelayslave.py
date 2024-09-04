@@ -21,9 +21,9 @@ s_robot = RegisterRobot("10.42.0.162")
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 
 # the configuration of zeroforce control for master robot ------------
-k_xyz = np.array([0.02, 0.02, 0.02])
+k_xyz = np.array([0.03, 0.03, 0.03])
 # k_xyz = np.array([0, 0, 0])
-kr_xyz = np.array([3, 3, 3])
+kr_xyz = np.array([4, 4, 4])
 control_time = 0.01
 m_zfcontroller = ZeroForceController(k_xyz, kr_xyz, control_time)
 # --------------
@@ -58,7 +58,7 @@ s_robot.zeroforce()
 m_last_ft = m_robot.getTCPFT()
 s_last_ft = s_robot.getTCPFT()
 ratio = 0.6
-strength = 3
+strength = 0.8
 
 sample_time = []
 force_xyz = []
@@ -89,7 +89,7 @@ def slaveside():
         np.save('data/' + current_time + 'slaveforce' + traj_name, force_record)
         time.sleep(control_time)
 
-
+# run the master side first
 while True:
     last_time = time.time()
     time.sleep(control_time/2)
@@ -105,8 +105,11 @@ while True:
     #     print('master request timed out, check the server in the slave side')
     # ------------------------------------
     curr_ft = m_robot.getTCPFT()
-    last_ft = lowpass_filter(m_last_ft, curr_ft, ratio)
-    err_ft = last_ft + s_env_ft / strength
+    m_last_ft = lowpass_filter(m_last_ft, curr_ft, ratio)
+    err_ft = m_last_ft + (s_env_ft / strength)
+    if m_last_ft[2] < 0 and (abs(m_last_ft[2]) - (s_env_ft / strength)[2]) < -1:
+        # the env force in z-axis is too big, stop z change
+        err_ft = m_last_ft + (s_env_ft / strength / 1.3)
     position_d, rotation_d, dp, dr = m_zfcontroller.zeroforce_control(
         ft=err_ft,
         desired_position=m_des_pos,
