@@ -12,10 +12,11 @@ m_robot = RegisterRobot("10.42.0.163")
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 
 # the configuration of zeroforce control for master robot ------------
-k_xyz = np.array([0.008, 0.008, 0.008])
+k_xyz = np.array([0.02, 0.02, 0.02])
 # k_xyz = np.array([0, 0, 0])
-kr_xyz = np.array([0.5, 0.5, 3])
-m_zfcontroller = ZeroForceController(k_xyz, kr_xyz, 0.01)
+kr_xyz = np.array([3, 3, 3])
+control_time = 0.01
+m_zfcontroller = ZeroForceController(k_xyz, kr_xyz, control_time)
 # --------------
 
 def lowpass_filter(last, cur, ratio):
@@ -38,7 +39,7 @@ init_delay_item = 30
 control_speed = 1
 m_robot.zeroforce()
 last_ft = m_robot.getTCPFT()
-ratio = 0.8
+ratio = 0.7
 
 sample_time = []
 force_xyz = []
@@ -60,7 +61,8 @@ sendtoslave.settimeout(0.1)
 # ---------------------------
 print('master running')
 while True:
-    time.sleep(0.01)
+    last_time = time.time()
+    time.sleep(control_time/2)
     # get the info from slave side (force and pos) ---------------
     try:
         recv_data, server = sendtoslave.recvfrom(1024)
@@ -75,24 +77,29 @@ while True:
     curr_ft = m_robot.getTCPFT()
     last_ft = lowpass_filter(last_ft, curr_ft, ratio)
     err_ft = last_ft + env_ft
-    position_d, rotation_d = m_zfcontroller.zeroforce_control(
+    position_d, rotation_d, dp, dr = m_zfcontroller.zeroforce_control(
         ft=err_ft,
         desired_position=des_pos,
         desired_rotation=des_euler,
     )
     ik_q = m_robot.IK(position_d, rotation_d)
-    if np.any(abs(err_ft[3:]) > ft_rot_th) or np.any(abs(err_ft[:3]) > ft_pos_th):
-        # for recording the desired posture but not set to des_pos and des_euler
-        des_pos = position_d
-        des_euler = rotation_d
+    # ---------------------------------------------
+    # if np.any(abs(err_ft[3:]) > ft_rot_th) or np.any(abs(err_ft[:3]) > ft_pos_th):
+    #     # for recording the desired posture but not set to des_pos and des_euler
+    #     des_pos = position_d
+    #     des_euler = rotation_d
     # ---------------------------------------------
     if _init_delay is True:
         init_delay_item -= 1
         control_speed = 0.8
         if init_delay_item < 0:
-            control_speed = 0.01
+            control_speed = 0.005
             _init_delay = False
-    m_robot.servoJ(ik_q, control_speed, 0.03, 500)
+    m_robot.servoJ(ik_q, control_speed, 0.05, 200)
+    # ---------------------------------------------
+    time.sleep(control_time/2)
+    des_pos, des_euler = m_robot.getToolPos()
+    # ---------------------------------
     # collect data for sending to slave side --------------
     f_h = m_robot.getTCPFT()
     p_hp, p_hr = m_robot.getToolPos()
@@ -100,26 +107,26 @@ while True:
     message = pickle.dumps(msg_to_slave)
     sendtoslave.sendto(message, addr)
     # ---------------------------------
-    p_h = np.hstack([p_hp, p_hr])
-    pos_record = np.vstack([pos_record, p_h])
-    force_record = np.vstack([force_record, f_h])
-    np.save('data/' + current_time + 'masterpos', pos_record)
-    np.save('data/' + current_time + 'masterforce', force_record)
-    try:
-        i += 1
-        sample_time.append(i)
-        # force_xyz.append(np.hstack((position_d, rotation_d)))
-        # force_xyz.append(position_d)
-        force_xyz.append(last_ft[:3])
-        plt.clf()  # 清除之前画的图
-        plt.plot(sample_time, force_xyz)  # 画出当前x列表和y列表中的值的图形
-        plt.pause(0.001)  # 暂停一段时间，不然画的太快会卡住显示不出来
-        plt.ioff()  # 关闭画图窗口
-
-    except KeyboardInterrupt:
-        time.sleep(1)
-        print('over')
-        plt.clf()
-        plt.close()
-        sys.exit(0)
-
+    # p_h = np.hstack([p_hp, p_hr])
+    # pos_record = np.vstack([pos_record, p_h])
+    # force_record = np.vstack([force_record, f_h])
+    # np.save('data/' + current_time + 'masterpos', pos_record)
+    # np.save('data/' + current_time + 'masterforce', force_record)
+    # try:
+    #     i += 1
+    #     sample_time.append(i)
+    #     # force_xyz.append(np.hstack((position_d, rotation_d)))
+    #     # force_xyz.append(position_d)
+    #     force_xyz.append(dp)
+    #     plt.clf()  # 清除之前画的图
+    #     plt.plot(sample_time, force_xyz)  # 画出当前x列表和y列表中的值的图形
+    #     plt.pause(0.001)  # 暂停一段时间，不然画的太快会卡住显示不出来
+    #     plt.ioff()  # 关闭画图窗口
+    #
+    # except KeyboardInterrupt:
+    #     time.sleep(1)
+    #     print('over')
+    #     plt.clf()
+    #     plt.close()
+    #     sys.exit(0)
+    # print('time:', time.time() - last_time)

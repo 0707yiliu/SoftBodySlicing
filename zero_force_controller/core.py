@@ -20,7 +20,7 @@ class ZeroForceController():
         desired_position = desired_position + p
         desired_rotation = desired_rotation + r
         # desired_rotation = desired_rotation + r
-        return desired_position, desired_rotation
+        return desired_position, desired_rotation, d_p, d_r
 
 
 
