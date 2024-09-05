@@ -1,8 +1,12 @@
 time_sample: 0.015
 # the sampling time to control the robot
-slave_file_date: '20240903171527' # cut-in vertical
+slave_file_date: '20240905165224' # cut-in vertical
+#clay:20240903171527
+#20240905160707 realknife cutoff lemon
+#20240905161140 realknife cutoff lemon
+#20240905165224 realknife slice clay
 # for DMPs follow
-traj_name: 'cutoff'
+traj_name: 'slice'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
 track_file_date: '20240903180421'
 # real robot track the DMPs trajectory

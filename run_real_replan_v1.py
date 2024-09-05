@@ -117,11 +117,7 @@ myrobot.servoJ(init_q, init_time, 0.05, 500)
 print('waiting and enter for cutting automatically.')
 input()
 myrobot.zeroforce()
-# define new_start and new_goal for DMP_traj func
-new_start_pos = np.array(config['DMPs']['new_start_pos'])
-new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
-new_start_force = np.array(config['DMPs']['new_start_force'])
-new_goal_force = np.array(config['DMPs']['new_goal_force'])
+
 # get demonstrated traj from traj_load func
 traj_name = config['traj_name']
 slave_force = config['slave_file_date'] + 'slaveforce' + traj_name
@@ -137,6 +133,13 @@ admittance_paramsT = np.zeros((3, 3))
 
 # sub-thread for get dynamic target pose
 target_curr = np.zeros(6)  # TODO: add rot as zeros(6)
+
+# define new_start and new_goal for DMP_traj func
+new_start_pos = np.array(config['DMPs']['new_start_pos'])
+# new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
+new_goal_pos = np.copy(traj_pos[-1, :])
+new_start_force = np.array(config['DMPs']['new_start_force'])
+new_goal_force = np.array(config['DMPs']['new_goal_force'])
 
 
 def det_tag():

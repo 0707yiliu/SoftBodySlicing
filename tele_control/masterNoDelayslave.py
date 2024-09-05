@@ -21,9 +21,9 @@ s_robot = RegisterRobot("10.42.0.162")
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 
 # the configuration of zeroforce control for master robot ------------
-k_xyz = np.array([0.03, 0.03, 0.03])
+k_xyz = np.array([0.02, 0.02, 0.015])
 # k_xyz = np.array([0, 0, 0])
-kr_xyz = np.array([4, 4, 4])
+kr_xyz = np.array([0.5, 0.5, 2])
 control_time = 0.01
 m_zfcontroller = ZeroForceController(k_xyz, kr_xyz, control_time)
 # --------------
@@ -107,9 +107,9 @@ while True:
     curr_ft = m_robot.getTCPFT()
     m_last_ft = lowpass_filter(m_last_ft, curr_ft, ratio)
     err_ft = m_last_ft + (s_env_ft / strength)
-    if m_last_ft[2] < 0 and (abs(m_last_ft[2]) - (s_env_ft / strength)[2]) < -1:
+    if m_last_ft[2] < 0 and (abs(m_last_ft[2]) - (s_env_ft / strength)[2]) < -3:
         # the env force in z-axis is too big, stop z change
-        err_ft = m_last_ft + (s_env_ft / strength / 1.3)
+        err_ft = m_last_ft + (s_env_ft / strength / 1.4)
     position_d, rotation_d, dp, dr = m_zfcontroller.zeroforce_control(
         ft=err_ft,
         desired_position=m_des_pos,
