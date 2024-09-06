@@ -1,14 +1,18 @@
 time_sample: 0.015
 # the sampling time to control the robot
-slave_file_date: '20240905165224' # cut-in vertical
+slave_file_date: '20240906152341' # cut-in vertical
 #clay:20240903171527
+#20240906152341 cutoff lemon new
 #20240905160707 realknife cutoff lemon
 #20240905161140 realknife cutoff lemon
 #20240905165224 realknife slice clay
+#20240906134431 slice clay
+#20240906134635 slice plasticine
+#20240906134018 cutin clay
 # for DMPs follow
-traj_name: 'slice'
+traj_name: 'cutoff'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
-track_file_date: '20240903180421'
+track_file_date: '20240906152135'
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
@@ -25,7 +29,8 @@ forgetting_err:
     # the smaller, the smaller force, but can not be too large because it divide t^2
 admittance_controller:
     mass: 1
-    k_pos: 3500
+#    k_pos: 3500
+    k_pos: 5000
     # spring for position, use critical damping
     k_rot: 2000
     # same as k_pos, both of them can be changed, the bigger, the smaller moving
@@ -42,7 +47,7 @@ DMPs:
 replan:
     contact: False
     # False: do not contact, to True: get the first time of contacting
-    ft_th: 2
+    ft_th: 1
     # force threshold, for the first time of contacting
     o_pz: 0.0002
     # add delta_z in position for get the contact in t2 loop

@@ -135,8 +135,9 @@ admittance_paramsT = np.zeros((3, 3))
 target_curr = np.zeros(6)  # TODO: add rot as zeros(6)
 
 # define new_start and new_goal for DMP_traj func
-new_start_pos = np.array(config['DMPs']['new_start_pos'])
+# new_start_pos = np.array(config['DMPs']['new_start_pos'])
 # new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
+new_start_pos = np.copy(traj_pos[0, :])
 new_goal_pos = np.copy(traj_pos[-1, :])
 new_start_force = np.array(config['DMPs']['new_start_force'])
 new_goal_force = np.array(config['DMPs']['new_goal_force'])
@@ -218,9 +219,9 @@ deriv_traj_force = trj_derivative(-dmp_traj_force, t_sample)
 # dmp_traj_pos = np.copy(traj_pos)
 # dmp_traj_force = np.copy(traj_force)
 # separate the trajectories
-t0_t1_dmps_traj_pos = dmp_traj_pos[:t1_index, :]
-t1_t2_dmps_traj_pos = dmp_traj_pos[t1_index:t2_index, :]
-t2_back_dmps_traj_pos = dmp_traj_pos[t2_index:, :]
+t0_t1_dmps_traj_pos = np.copy(dmp_traj_pos[:t1_index, :])
+t1_t2_dmps_traj_pos = np.copy(dmp_traj_pos[t1_index:t2_index, :])
+t2_back_dmps_traj_pos = np.copy(dmp_traj_pos[t2_index:, :])
 
 t0_t1_goal_pos_last = np.copy(t0_t1_dmps_traj_pos[-1, :])
 t0_t1_goal_pos_curr = np.copy(t0_t1_dmps_traj_pos[-1, :])
@@ -492,10 +493,10 @@ while True:
         arm_pos_record = np.vstack([arm_pos_record, arm_d])
         force_record = np.vstack([force_record, desired_force])
         curr_force_record = np.vstack([curr_force_record, curr_ft_filted])
-        np.save('cut_data/' + current_time + 'pos', pos_record)
-        np.save('cut_data/' + current_time + 'force', force_record)
-        np.save('cut_data/' + current_time + 'armpos', arm_pos_record)
-        np.save('cut_data/' + current_time + 'armforce', curr_force_record)
+        np.save('cut_data/' + current_time + 'pos' + traj_name, pos_record)
+        np.save('cut_data/' + current_time + 'force' + traj_name, force_record)
+        np.save('cut_data/' + current_time + 'armpos' + traj_name, arm_pos_record)
+        np.save('cut_data/' + current_time + 'armforce' + traj_name, curr_force_record)
 if run_mode is False:
     plt.figure(1)
     for i in range(6):

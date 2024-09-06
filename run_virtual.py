@@ -79,7 +79,7 @@ current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 # register the robot
 # myrobot = RegisterRobot("10.42.0.162")
 # define new_start and new_goal for DMP_traj func
-new_start_pos = np.array(config['DMPs']['new_start_pos'])
+# new_start_pos = np.array(config['DMPs']['new_start_pos'])
 # new_goal_pos = np.array(config['DMPs']['new_goal_pos'])
 new_start_force = np.array(config['DMPs']['new_start_force'])
 new_goal_force = np.array(config['DMPs']['new_goal_force'])
@@ -88,11 +88,12 @@ traj_name = config['traj_name']
 slave_force = config['slave_file_date'] + 'slaveforce' + traj_name# for virtual DMP virtual force
 slave_pos = config['slave_file_date'] + 'slavepos' + traj_name
 traj_force, traj_pos = traj_load(slave_force, slave_pos)
+new_start_pos = np.copy(traj_pos[0, :])
 new_goal_pos = np.copy(traj_pos[-1, :])
-slave_force = config['track_file_date'] + 'force' # display the real tracking
-slave_pos = config['track_file_date'] + 'pos'
-arm_pos = config['track_file_date'] + 'armpos'
-arm_force = config['track_file_date'] + 'armforce'
+slave_force = config['track_file_date'] + 'force'  + traj_name# display the real tracking
+slave_pos = config['track_file_date'] + 'pos' + traj_name
+arm_pos = config['track_file_date'] + 'armpos' + traj_name
+arm_force = config['track_file_date'] + 'armforce' + traj_name
 track_force, track_pos = traj_real_load(slave_force, slave_pos)
 track_arm_force, track_arm_pos = traj_real_load(arm_force, arm_pos)
 print('pos start', traj_pos[0, :])
