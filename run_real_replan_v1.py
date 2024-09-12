@@ -328,12 +328,12 @@ while True:
         if curr_ft_filted[2] >= ft_th:
             touch_stuff = True
             index1_advance = True
+            pos, rot = myrobot.getToolPos()
+            advance_pos = np.hstack([pos, rot])
             if cut_class == 2:  # cut on the surface, need to record the current delta z-position
                 z_t2_dyn_c2 = pos[-1] - dmp_traj_pos[t1_index - 1, 2]
                 t2_deeper = True
             t1_index = _index + 1  # cut the t1_index, make the i skip to index2
-            pos, rot = myrobot.getToolPos()
-            advance_pos = np.hstack([pos, rot])
             # print('------------------------', i, t1_index)
             # re-change the t1 and t2 index
             # t0_t1_dmps_traj_pos = dmp_traj_pos[:t1_index, :]

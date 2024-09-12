@@ -1,6 +1,6 @@
 time_sample: 0.01
 # the sampling time to control the robot
-slave_file_date: '20240912133152' # cut-in vertical
+slave_file_date: '20240912140410' # cut-in vertical
 #TODO: the object with the skin such as lemon need spacial cutoff path
 #TODO: use the lemon as the cuttingoff traj for all of objs
 #clay:20240903171527
@@ -15,13 +15,15 @@ slave_file_date: '20240912133152' # cut-in vertical
 
 #20240912133152 new cutoff lemon
 #20240912135820 slaveposslice lemon
-#20240912140410slaveposcutin lemon
+#20240912185517 slaveposslice apple
+#20240912185955 slaveposslice orange
+#20240912140410 slaveposcutin lemon
 # for DMPs follow
-traj_name: 'cutoff'
+traj_name: 'cutin'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
-obj_name: 'orange'
+obj_name: 'banana'
 # the cut object in autocut system
-track_file_date: '20240912170153'
+track_file_date: '20240912184951'
 #20240912165421poscutoffbanana.npy
 #20240912172445poscutoffapple.npy
 #20240912170539poscutoffpear.npy
@@ -47,9 +49,9 @@ forgetting_err:
 admittance_controller:
     mass: 1
 #    k_pos: 3500
-    k_pos: 5000
+    k_pos: 6000
     # spring for position, use critical damping
-    k_rot: 2000
+    k_rot: 3000
     # same as k_pos, both of them can be changed, the bigger, the smaller moving
     dt: 0.01
     # same as the frequency of controlling
