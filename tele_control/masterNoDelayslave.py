@@ -70,6 +70,9 @@ pos_record = np.zeros(6)
 force_record = np.zeros(6)
 s_env_ft = np.zeros(6) # it would be changed by slave side, to env_ft
 
+m_pos_record = np.zeros(6)
+m_force_record = np.zeros(6)
+
 def slaveside():
     global m_des_pos, m_des_euler, s_env_ft
     pos_record = np.zeros(6)
@@ -109,7 +112,7 @@ while True:
     err_ft = m_last_ft + (s_env_ft / strength)
     if m_last_ft[2] < 0 and (abs(m_last_ft[2]) - (s_env_ft / strength)[2]) < -3:
         # the env force in z-axis is too big, stop z change
-        err_ft = m_last_ft + (s_env_ft / strength / 1.4)
+        err_ft = m_last_ft + (s_env_ft / strength / 1.8)
     position_d, rotation_d, dp, dr = m_zfcontroller.zeroforce_control(
         ft=err_ft,
         desired_position=m_des_pos,
@@ -129,4 +132,9 @@ while True:
     # ---------------------------------------------
     time.sleep(control_time/2)
     m_des_pos, m_des_euler = m_robot.getToolPos()
+    p_h = np.hstack([m_des_pos, m_des_euler])
+    m_pos_record = np.vstack([m_pos_record, p_h])
+    m_force_record = np.vstack([m_force_record, curr_ft])
+    np.save('data/' + current_time + 'masterpos', m_pos_record)
+    np.save('data/' + current_time + 'masterforce', m_force_record)
     # print('time:', time.time() - last_time)

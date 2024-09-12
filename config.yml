@@ -1,23 +1,40 @@
-time_sample: 0.015
+time_sample: 0.01
 # the sampling time to control the robot
-slave_file_date: '20240906152341' # cut-in vertical
+slave_file_date: '20240912133152' # cut-in vertical
+#TODO: the object with the skin such as lemon need spacial cutoff path
+#TODO: use the lemon as the cuttingoff traj for all of objs
 #clay:20240903171527
-#20240906152341 cutoff lemon new
+#20240906152341 cutoff lemon new, no
 #20240905160707 realknife cutoff lemon
 #20240905161140 realknife cutoff lemon
 #20240905165224 realknife slice clay
 #20240906134431 slice clay
 #20240906134635 slice plasticine
 #20240906134018 cutin clay
+#20240909120507 cutoff lemon newnew good
+
+#20240912133152 new cutoff lemon
+#20240912135820 slaveposslice lemon
+#20240912140410slaveposcutin lemon
 # for DMPs follow
 traj_name: 'cutoff'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
-track_file_date: '20240906152135'
+obj_name: 'orange'
+# the cut object in autocut system
+track_file_date: '20240912170153'
+#20240912165421poscutoffbanana.npy
+#20240912172445poscutoffapple.npy
+#20240912170539poscutoffpear.npy
+#20240912170153poscutofforange.npy
+#20240912172721poscutoffkiwi.npy
+#20240912173029poscutoffcucumber.npy
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
 run_mode: True
 # the running mode of the replan. False: sim with plot, True: real robot movej
+record: True
+# record the viedo when cutting
 forgetting_err:
     memory_strength: 0.01
     memory_strength_rot: 0.01

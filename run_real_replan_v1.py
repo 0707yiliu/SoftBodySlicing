@@ -120,6 +120,7 @@ myrobot.zeroforce()
 
 # get demonstrated traj from traj_load func
 traj_name = config['traj_name']
+obj_name = config['obj_name']
 slave_force = config['slave_file_date'] + 'slaveforce' + traj_name
 slave_pos = config['slave_file_date'] + 'slavepos' + traj_name
 traj_force, traj_pos = traj_load(slave_force, slave_pos)
@@ -142,7 +143,8 @@ new_goal_pos = np.copy(traj_pos[-1, :])
 new_start_force = np.array(config['DMPs']['new_start_force'])
 new_goal_force = np.array(config['DMPs']['new_goal_force'])
 
-
+record_video = config['record']
+video_path = 'cut_data/' + current_time + traj_name + 'video.mp4'
 def det_tag():
     global target_curr
     tag_det = AprilTagDet(rootid=9, objid=10)
@@ -493,10 +495,10 @@ while True:
         arm_pos_record = np.vstack([arm_pos_record, arm_d])
         force_record = np.vstack([force_record, desired_force])
         curr_force_record = np.vstack([curr_force_record, curr_ft_filted])
-        np.save('cut_data/' + current_time + 'pos' + traj_name, pos_record)
-        np.save('cut_data/' + current_time + 'force' + traj_name, force_record)
-        np.save('cut_data/' + current_time + 'armpos' + traj_name, arm_pos_record)
-        np.save('cut_data/' + current_time + 'armforce' + traj_name, curr_force_record)
+        np.save('cut_data/' + current_time + 'pos' + traj_name + obj_name, pos_record)
+        np.save('cut_data/' + current_time + 'force' + traj_name + obj_name, force_record)
+        np.save('cut_data/' + current_time + 'armpos' + traj_name + obj_name, arm_pos_record)
+        np.save('cut_data/' + current_time + 'armforce' + traj_name + obj_name, curr_force_record)
 if run_mode is False:
     plt.figure(1)
     for i in range(6):

@@ -45,6 +45,11 @@ class AprilTagDet:
         self.recording_count = 0
         self.recording_path = path
 
+        if self.enable_record is True:
+            fps, w, h = 30, 1920, 1080
+            mp4 = cv2.VideoWriter_fourcc(*'mp4v')
+            self.wr = cv2.VideoWriter(self.recording_path, mp4, fps, (w, h), isColor=True)
+
         print("complete the RealSense initialization.")
 
         self.K = np.array([[self.FHD_fx, 0., self.FHD_cx],
@@ -80,6 +85,8 @@ class AprilTagDet:
         self.y = 0
         self.z = 0
 
+        self.output = np.zeros(6)
+
     def get_aligned_images(self):
         frames = self.pipeline.wait_for_frames()
         aligned_frames = self.align.process(frames)
@@ -99,6 +106,7 @@ class AprilTagDet:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         at_detactor = apriltag.Detector(apriltag.DetectorOptions(families="tag36h11"))
         tags = at_detactor.detect(gray)
+
         for tag in tags:
             if self.render is True:
                 H = tag.homography
@@ -142,20 +150,22 @@ class AprilTagDet:
             #  [ 0.0143463   0.0174477   0.99974485]]
             r = R.from_matrix(self.rootTobj[:3, :3])
             rot = r.as_rotvec()
-            output = np.hstack([np.array([self.x, self.y, self.z]), rot])
+            self.output = np.hstack([np.array([self.x, self.y, self.z]), rot])
 
         if self.enable_record is True:
-            mkdir(self.recording_path + "/jpgsource/")
-            self.recording_count += 1
-            filename = str(self.recording_path + "/jpgsource/" + str(self.recording_count) + ".jpg")
-            cv2.imwrite(filename, img)
-        if self.render is True:
-            cv2.imshow("camera-image", img)
-            if cv2.waitKey(1) & 0xFF == ord("j"):
-                i += 1
-                n = str(i)
-                filename = str("./image" + n + ".jpg")
-                cv2.imwrite(filename, img)
-        return output
+            self.wr.write(img)
+            cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+            # cv2.imshow('RealSense', colorizer_depth)
+            cv2.imshow('RealSense', img)
+            print('detTag recording...')
+        # if self.render is True:
+        #     cv2.imshow("camera-image", img)
+        #     if cv2.waitKey(1) & 0xFF == ord("j"):
+        #         i += 1
+        #         n = str(i)
+        #         filename = str("./image" + n + ".jpg")
+        #         cv2.imwrite(filename, img)
+        return self.output
+
 
 
