@@ -1,6 +1,6 @@
 time_sample: 0.01
 # the sampling time to control the robot
-slave_file_date: '20240912140410' # cut-in vertical
+slave_file_date: '20240912133152' # cut-in vertical
 #TODO: the object with the skin such as lemon need spacial cutoff path
 #TODO: use the lemon as the cuttingoff traj for all of objs
 #clay:20240903171527
@@ -19,17 +19,17 @@ slave_file_date: '20240912140410' # cut-in vertical
 #20240912185955 slaveposslice orange
 #20240912140410 slaveposcutin lemon
 # for DMPs follow
-traj_name: 'cutin'
+traj_name: 'cutoff'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
-obj_name: 'banana'
+obj_name: 'orange'
 # the cut object in autocut system
-track_file_date: '20240912184951'
-#20240912165421poscutoffbanana.npy
-#20240912172445poscutoffapple.npy
-#20240912170539poscutoffpear.npy
-#20240912170153poscutofforange.npy
-#20240912172721poscutoffkiwi.npy
-#20240912173029poscutoffcucumber.npy
+track_file_date: '20240912170153'
+#20240912165421 poscutoffbanana.npy
+#20240912172445 poscutoffapple.npy
+#20240912170539 poscutoffpear.npy
+#20240912170153 poscutofforange.npy
+#20240912172721 poscutoffkiwi.npy
+#20240912173029 poscutoffcucumber.npy
 # real robot track the DMPs trajectory
 controlled_robot_ip: '10.42.0.162'
 # slave robot/ controlled robot ip
