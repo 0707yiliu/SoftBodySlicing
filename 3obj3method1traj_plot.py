@@ -83,6 +83,78 @@ for i in range(row):
 
 axs[-1, -1].legend()
 
-#force
 
+#force ----------------------------------------
+fig, axs = plt.subplots(row, col, figsize=(1500/my_dpi, 300/my_dpi),dpi=my_dpi, sharex=True, sharey=False)
+cutoff_time = np.linspace(0, cutoff_force.shape[0]/100, cutoff_force.shape[0])
+
+obj = ['20240912170153', '20240912172445', '20240912173029']
+states = ['armforce', 'armpos', 'force', 'pos']
+act = 'cutoff'
+objname = ['orange', 'apple', 'cucumber']# relate to obj
+obj_datas = []
+time_datas = []
+for i in range(3):
+    obj_ftsensordata, obj_qdata = traj_load_cut_data(
+        obj[i] + states[0] + act + objname[i],
+        obj[i] + states[1] + act + objname[i]
+    )
+    obj_ftcompensate, obj_qcompensate = traj_load_cut_data(
+        obj[i] + states[2] + act + objname[i],
+        obj[i] + states[3] + act + objname[i]
+    )
+    timelen = np.linspace(0, obj_ftsensordata.shape[0]/100, obj_ftsensordata.shape[0])
+    time_datas.append(timelen)
+    obj_datas.extend([obj_ftsensordata, obj_qdata, obj_ftcompensate, obj_qcompensate])
+#plot pos
+# for k in range(3): # 3objs
+#     for i in range(row):
+#         for j in range(col):
+#             index = (i + 1) * j if i == 0 else i * j + col
+#
+# initial filter param
+
+
+
+for i in range(row):
+    for j in range(col):
+        if i == 0:
+            axs[i, j].set_title(_title[j])
+            index = (i + 1) * j
+            if j == 0:
+                axs[i, j].set_ylabel(r'force($N$)')
+        if j == 0 and i == 1:
+            axs[i, j].set_ylabel(r'torque($N\cdot m$)')
+        if i == 1:
+            index = i * j + col
+            axs[i, j].set_xlabel(r'time($s$)')
+        demo = axs[i, j].plot(cutoff_time, cutoff_force[:, index], label=r"$y_1$", color=_colors[0], ls="-", lw=2, alpha=0.5)
+        o1_qc = axs[i, j].plot(time_datas[0], obj_datas[0][:, index], label=r"obj1_fcompen", ls="-", lw=2)
+        o1_q = axs[i, j].plot(time_datas[0], obj_datas[2][:, index], label=objname[0], ls="-", lw=2)
+        o2_qc = axs[i, j].plot(time_datas[1], obj_datas[4][:, index], label=r"obj2_fcompen", ls="-", lw=2)
+        o2_q = axs[i, j].plot(time_datas[1], obj_datas[6][:, index], label=objname[1], ls="-", lw=2)
+        o3_qc = axs[i, j].plot(time_datas[2], obj_datas[8][:, index], label=r"obj3_fcompen", ls="-", lw=2)
+        o3_q = axs[i, j].plot(time_datas[2], obj_datas[10][:, index], label=objname[2], ls="-", lw=2)
+
+axs[-1, -1].legend()
+
+#filter
+from scipy import signal
+def butter_lowpass_filtfilt(data, order, cutoff, fs):
+    wn = 2 * cutoff / fs
+    b, a = signal.butter(order, wn, 'lowpass', analog=False)
+    output = signal.filtfilt(b, a, data, axis=0)
+    return output
+order=2
+cutoff=4
+fs=100
+filterforce = butter_lowpass_filtfilt(cutoff_force[:, 2], order, cutoff, fs)
+o1forcefilter = butter_lowpass_filtfilt(obj_datas[4][:, 2], 6, 4, 50)
+o1forcefilter2 = butter_lowpass_filtfilt(obj_datas[4][:, 2], 4, 4, 50)
+plt.figure(3)
+# plt.plot(filterforce, label=r"$y_1$",)
+plt.plot(obj_datas[4][:, 2], label=r"1", lw=4, alpha=0.5)
+plt.plot(o1forcefilter, label=r"2",)
+plt.plot(o1forcefilter2, label=r"3",)
+plt.legend()
 plt.show()
