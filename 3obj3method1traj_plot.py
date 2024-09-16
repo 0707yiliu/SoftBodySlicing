@@ -34,9 +34,6 @@ cutoff_force, cutoff_pos = traj_load(cutoff_force, cutoff_pos)
 fig, axs = plt.subplots(row, col, figsize=(1500/my_dpi, 300/my_dpi),dpi=my_dpi, sharex=True, sharey=False)
 cutoff_time = np.linspace(0, cutoff_pos.shape[0]/100, cutoff_pos.shape[0])
 #3objs3models
-orange_y4_ = '20240912170153poscutofforange'
-apple_y4 = '20240912172445poscutoffapple'
-cucumber_y4 = '20240912173029poscutoffcucumber'
 obj = ['20240912170153', '20240912172445', '20240912173029']
 states = ['armforce', 'armpos', 'force', 'pos']
 act = 'cutoff'
@@ -87,8 +84,9 @@ axs[-1, -1].legend()
 #force ----------------------------------------
 fig, axs = plt.subplots(row, col, figsize=(1500/my_dpi, 300/my_dpi),dpi=my_dpi, sharex=True, sharey=False)
 cutoff_time = np.linspace(0, cutoff_force.shape[0]/100, cutoff_force.shape[0])
-
-obj = ['20240912170153', '20240912172445', '20240912173029']
+# 20240916175334poscutofforange.npy
+# obj = ['20240912170153', '20240912172445', '20240912173029']
+obj = ['20240916175334', '20240912172445', '20240912173029']
 states = ['armforce', 'armpos', 'force', 'pos']
 act = 'cutoff'
 objname = ['orange', 'apple', 'cucumber']# relate to obj
@@ -114,7 +112,25 @@ for i in range(3):
 #
 # initial filter param
 
-
+from scipy.signal import savgol_filter
+from scipy import signal
+def butter_lowpass_filtfilt(data, order, cutoff, fs):
+    wn = 2 * cutoff / fs
+    b, a = signal.butter(order, wn, 'lowpass', analog=False)
+    output = signal.filtfilt(b, a, data, axis=0)
+    return output
+def savgol_smooth(data):
+    col, row = data.shape
+    windows = 123
+    order = 5
+    filtereddata = np.zeros_like(data)
+    for i in range(row):
+        filtereddata[:, i] = savgol_filter(data[:, i], windows, order, mode= 'nearest')
+        filtereddata[:, i] = butter_lowpass_filtfilt(filtereddata[:, i], 4, 4, 50)
+    return filtereddata
+cutoff_force = savgol_smooth(cutoff_force)
+for i in range(len(obj_datas)):
+    obj_datas[i] = savgol_smooth(obj_datas[i])
 
 for i in range(row):
     for j in range(col):
@@ -129,32 +145,45 @@ for i in range(row):
             index = i * j + col
             axs[i, j].set_xlabel(r'time($s$)')
         demo = axs[i, j].plot(cutoff_time, cutoff_force[:, index], label=r"$y_1$", color=_colors[0], ls="-", lw=2, alpha=0.5)
-        o1_qc = axs[i, j].plot(time_datas[0], obj_datas[0][:, index], label=r"obj1_fcompen", ls="-", lw=2)
-        o1_q = axs[i, j].plot(time_datas[0], obj_datas[2][:, index], label=objname[0], ls="-", lw=2)
-        o2_qc = axs[i, j].plot(time_datas[1], obj_datas[4][:, index], label=r"obj2_fcompen", ls="-", lw=2)
-        o2_q = axs[i, j].plot(time_datas[1], obj_datas[6][:, index], label=objname[1], ls="-", lw=2)
-        o3_qc = axs[i, j].plot(time_datas[2], obj_datas[8][:, index], label=r"obj3_fcompen", ls="-", lw=2)
-        o3_q = axs[i, j].plot(time_datas[2], obj_datas[10][:, index], label=objname[2], ls="-", lw=2)
+        o1_qc = axs[i, j].plot(time_datas[0], obj_datas[0][:, index], label='pure DMP', ls="-", lw=2)
+        o1_q = axs[i, j].plot(time_datas[0], -obj_datas[2][:, index], label=r"pure DMP ForceComp", ls="-", lw=2)
+        # o2_qc = axs[i, j].plot(time_datas[1], obj_datas[4][:, index], label=objname[1], ls="-", lw=2)
+        # o2_q = axs[i, j].plot(time_datas[1], -obj_datas[6][:, index], label=r"obj2ForceComp", ls="-", lw=2)
+        o3_qc = axs[i, j].plot(time_datas[2], obj_datas[8][:, index], label='cr-DMP', ls="-", lw=2)
+        o3_q = axs[i, j].plot(time_datas[2], -obj_datas[10][:, index], label=r"cr-DMP ForceComp", ls="-", lw=2)
 
-axs[-1, -1].legend()
+axs[-1, -1].legend(bbox_to_anchor=(1, 1.5))
 
-#filter
-from scipy import signal
-def butter_lowpass_filtfilt(data, order, cutoff, fs):
-    wn = 2 * cutoff / fs
-    b, a = signal.butter(order, wn, 'lowpass', analog=False)
-    output = signal.filtfilt(b, a, data, axis=0)
-    return output
-order=2
-cutoff=4
-fs=100
-filterforce = butter_lowpass_filtfilt(cutoff_force[:, 2], order, cutoff, fs)
-o1forcefilter = butter_lowpass_filtfilt(obj_datas[4][:, 2], 6, 4, 50)
-o1forcefilter2 = butter_lowpass_filtfilt(obj_datas[4][:, 2], 4, 4, 50)
-plt.figure(3)
-# plt.plot(filterforce, label=r"$y_1$",)
-plt.plot(obj_datas[4][:, 2], label=r"1", lw=4, alpha=0.5)
-plt.plot(o1forcefilter, label=r"2",)
-plt.plot(o1forcefilter2, label=r"3",)
-plt.legend()
+# #filter and smooth test -----------------------------------------------
+# from scipy import signal
+# def butter_lowpass_filtfilt(data, order, cutoff, fs):
+#     wn = 2 * cutoff / fs
+#     b, a = signal.butter(order, wn, 'lowpass', analog=False)
+#     output = signal.filtfilt(b, a, data, axis=0)
+#     return output
+# order=2
+# cutoff=4
+# fs=100
+# def sample_from_data(data, index):
+#     get = int(data.shape[0]) // index
+#     sampled_data = np.array([])
+#     for i in range(get):
+#         sampled_data = np.append(sampled_data, data[i*index])
+#     return sampled_data
+# sampleindex = 1
+# sampledata = sample_from_data(cutoff_force[:, 2], sampleindex)
+# sampledatac = sample_from_data(obj_datas[4][:, 2], sampleindex)
+# from scipy.signal import savgol_filter
+# sampledata = savgol_filter(sampledata, 123, 5, mode= 'nearest')
+# sampledatac = savgol_filter(sampledatac, 123, 5, mode= 'nearest')# smooth func
+# filterforce = butter_lowpass_filtfilt(sampledata, order, cutoff, fs)
+# o1forcefilter = butter_lowpass_filtfilt(sampledatac, 6, 4, 50)
+# o1forcefilter2 = butter_lowpass_filtfilt(sampledatac, 4, 4, 50)
+# plt.figure(3)
+# # plt.plot(filterforce, label=r"$y_1$",)
+# plt.plot(filterforce, label=r"1", lw=4, alpha=0.5)
+# plt.plot(o1forcefilter, label=r"2",)
+# plt.plot(o1forcefilter2, label=r"3",)
+# plt.legend()
+# ----------------------------------------------------------------------------
 plt.show()

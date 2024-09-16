@@ -1,4 +1,6 @@
 time_sample: 0.01
+controlmode: 1
+# 1: pure DMP, 2: fcom DMP, 3:fcom+replan DMP
 # the sampling time to control the robot
 slave_file_date: '20240912133152' # cut-in vertical
 #TODO: the object with the skin such as lemon need spacial cutoff path
@@ -23,7 +25,7 @@ traj_name: 'cutoff'
 # the trajectory name for recording (cutoff, cutin, slice, $dig$)
 obj_name: 'orange'
 # the cut object in autocut system
-track_file_date: '20240912170153'
+track_file_date: '20240916175334'
 #20240912165421 poscutoffbanana.npy
 #20240912172445 poscutoffapple.npy
 #20240912170539 poscutoffpear.npy
